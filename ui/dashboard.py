@@ -24,7 +24,7 @@ from engine.fusion import FusionLayer
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Hybrid IDS",
-    page_icon="🛡️",
+    page_icon=":material/security:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -32,28 +32,81 @@ st.set_page_config(
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@400;500;600;700;800&display=swap');
 
-* { font-family: 'Syne', sans-serif; }
-code, .stCode { font-family: 'JetBrains Mono', monospace; }
+:root {
+    --bg: #0b1220;
+    --bg-elev: #101a2e;
+    --panel: #14223b;
+    --border: #233657;
+    --text: #e8eef8;
+    --muted: #9bb0cf;
+    --accent: #14b8a6;
+    --accent-strong: #0f766e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #22c55e;
+}
+
+html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
+    font-family: 'Manrope', sans-serif;
+}
+code, .stCode, .stTextArea textarea, .stTextInput input {
+    font-family: 'IBM Plex Mono', monospace;
+}
 
 [data-testid="stAppViewContainer"] {
-    background: #0a0e1a;
-    color: #e2e8f0;
+    background: radial-gradient(circle at top right, #16233d 0%, var(--bg) 35%, var(--bg) 100%);
+    color: var(--text);
 }
 [data-testid="stSidebar"] {
-    background: #0d1225 !important;
-    border-right: 1px solid #1e2a45;
+    background: var(--bg-elev) !important;
+    border-right: 1px solid var(--border);
+}
+.sidebar-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 8px;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    padding: 8px 10px;
+    transition: all 0.2s ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
+    border-color: #2d466f;
+    background: #13233d;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
+    border-color: var(--accent);
+    background: #123245;
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div:first-child {
+    display: none;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
+    color: var(--text);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0;
 }
 .metric-card {
-    background: #0d1225;
-    border: 1px solid #1e2a45;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
 }
 .block-badge {
-    background: #ff0033;
+    background: var(--danger);
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
@@ -61,7 +114,7 @@ code, .stCode { font-family: 'JetBrains Mono', monospace; }
     font-size: 13px;
 }
 .alert-badge {
-    background: #ff8c00;
+    background: var(--warning);
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
@@ -69,7 +122,7 @@ code, .stCode { font-family: 'JetBrains Mono', monospace; }
     font-size: 13px;
 }
 .allow-badge {
-    background: #00c853;
+    background: var(--success);
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
@@ -77,7 +130,7 @@ code, .stCode { font-family: 'JetBrains Mono', monospace; }
     font-size: 13px;
 }
 .risk-bar-bg {
-    background: #1e2a45;
+    background: var(--panel);
     border-radius: 6px;
     height: 10px;
     width: 100%;
@@ -85,21 +138,37 @@ code, .stCode { font-family: 'JetBrains Mono', monospace; }
 .header-title {
     font-size: 2.5rem;
     font-weight: 800;
-    background: linear-gradient(90deg, #00d4ff, #7b2fff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text);
     margin-bottom: 0;
 }
 .sub-title {
-    color: #64748b;
+    color: var(--muted);
     font-size: 1rem;
     margin-top: 0;
 }
 div[data-testid="stMetric"] {
-    background: #0d1225;
-    border: 1px solid #1e2a45;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 15px;
+}
+[data-testid="stMetricLabel"], [data-testid="stMetricValue"], [data-testid="stMetricDelta"] {
+    color: var(--text);
+}
+[data-testid="stButton"] button {
+    background: var(--accent);
+    color: #07201d;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+}
+[data-testid="stButton"] button:hover {
+    background: #19ccb8;
+    color: #05201c;
+}
+[data-testid="stAlert"] {
+    border: 1px solid var(--border);
+    border-radius: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -125,21 +194,20 @@ extractor, rule_engine, ml_detector, fusion = load_components()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🛡️ Hybrid IDS")
-    st.markdown("---")
+    st.markdown('<div class="sidebar-title">Hybrid IDS</div>', unsafe_allow_html=True)
 
     page = st.radio(
         "Navigation",
-        ["🏠 Dashboard", "📂 Analyze Traffic", "⚙️ Train Model", "📋 Rules Viewer"],
+        ["Dashboard", "Analyze Traffic", "Train Model", "Rules Viewer"],
         label_visibility="collapsed"
     )
 
     st.markdown("---")
     st.markdown("**Model Status**")
     if ml_detector.trained:
-        st.success("✅ ML Model Loaded")
+        st.success("ML Model Loaded")
     else:
-        st.warning("⚠️ No model — train first")
+        st.warning("No model found. Train first.")
 
     st.markdown(f"**Rules Loaded:** `{len(rule_engine.rules)}`")
     st.markdown("---")
@@ -181,8 +249,8 @@ def analyze_df(df: pd.DataFrame, max_rows=300):
         rows.append({
             "Action":        decision.action,
             "Risk Score":    decision.risk_score,
-            "Rule Hit":      "✅" if decision.rule_matched else "—",
-            "Matched Rules": ", ".join(decision.matched_rule_names) or "—",
+            "Rule Hit":      "Yes" if decision.rule_matched else "No",
+            "Matched Rules": ", ".join(decision.matched_rule_names) or "None",
             "Rule Severity": decision.rule_severity,
             "ML Score":      round(decision.ml_anomaly_score, 3),
             "Dst Port":      ff.dst_port,
@@ -198,35 +266,34 @@ def analyze_df(df: pd.DataFrame, max_rows=300):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
-if page == "🏠 Dashboard":
+if page == "Dashboard":
     st.markdown('<p class="header-title">Hybrid Intrusion Detection System</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">Rule-Based + ML Anomaly Detection + Risk Fusion</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Rule-Based + ML Anomaly Detection</p>', unsafe_allow_html=True)
     st.markdown("---")
 
     st.markdown("### System Architecture")
     cols = st.columns(5)
     steps = [
-        ("📡", "Traffic Input", "Raw network flows or PCAP/CSV"),
-        ("🔧", "Feature Extraction", "35 statistical features per flow"),
-        ("📏", "Rule Engine", "12 signature rules across 5 categories"),
-        ("🧠", "ML Detection", "Isolation Forest anomaly scoring"),
-        ("⚖️", "Risk Fusion", "Weighted decision → ALLOW/ALERT/BLOCK"),
+        ("Traffic Input", "Raw network flows or PCAP/CSV"),
+        ("Feature Extraction", "35 statistical features per flow"),
+        ("Rule Engine", "12 signature rules across 5 categories"),
+        ("ML Detection", "Isolation Forest anomaly scoring"),
+        ("Risk Fusion", "Weighted decision -> ALLOW/ALERT/BLOCK"),
     ]
-    for col, (icon, title, desc) in zip(cols, steps):
+    for col, (title, desc) in zip(cols, steps):
         with col:
             st.markdown(f"""
             <div class="metric-card">
-                <div style="font-size:2rem">{icon}</div>
-                <div style="font-weight:700;margin:8px 0;color:#00d4ff">{title}</div>
-                <div style="font-size:0.8rem;color:#64748b">{desc}</div>
+                <div style="font-weight:700;margin:8px 0;color:#dbe7fa">{title}</div>
+                <div style="font-size:0.8rem;color:#9bb0cf">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### Quick Demo — Sample Flow Analysis")
+    st.markdown("### Quick Demo - Sample Flow Analysis")
 
     # Generate a demo flow
-    if st.button("🔄 Simulate Random Traffic Flow"):
+    if st.button("Simulate Random Traffic Flow"):
         scenario = np.random.choice(["Normal", "Port Scan", "SYN Flood", "Brute Force SSH", "Unknown Anomaly"])
 
         demo_flows = {
@@ -304,21 +371,21 @@ if page == "🏠 Dashboard":
         st.markdown(f"**Simulated Scenario:** `{scenario}`")
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Action",     f"{decision.icon} {decision.action}")
+        c1.metric("Action",     decision.action)
         c2.metric("Risk Score", f"{decision.risk_score:.2f}")
         c3.metric("Rule Score", f"{decision.rule_score:.2f}")
         c4.metric("ML Score",   f"{decision.ml_score:.2f}")
 
         # Risk gauge bar
         pct = int(decision.risk_score * 100)
-        color = {"ALLOW": "#00c853", "ALERT": "#ff8c00", "BLOCK": "#ff0033"}.get(decision.action, "#ccc")
+        color = {"ALLOW": "#22c55e", "ALERT": "#f59e0b", "BLOCK": "#ef4444"}.get(decision.action, "#94a3b8")
         st.markdown(f"""
         <div style="margin:15px 0">
             <div style="display:flex;justify-content:space-between;margin-bottom:4px">
                 <span style="font-weight:700">Risk Score</span>
                 <span style="color:{color};font-weight:700">{pct}%</span>
             </div>
-            <div style="background:#1e2a45;border-radius:6px;height:14px">
+            <div style="background:#14223b;border-radius:6px;height:14px">
                 <div style="background:{color};width:{pct}%;height:14px;border-radius:6px;transition:width 0.5s"></div>
             </div>
         </div>
@@ -333,8 +400,8 @@ if page == "🏠 Dashboard":
 
 
 # ── Analyze Traffic ───────────────────────────────────────────────────────────
-elif page == "📂 Analyze Traffic":
-    st.markdown("## 📂 Analyze Traffic")
+elif page == "Analyze Traffic":
+    st.markdown("## Analyze Traffic")
     st.markdown("Upload a CSV file (CICIDS2017 format or any flow CSV)")
 
     uploaded = st.file_uploader("Upload CSV", type=["csv"])
@@ -342,7 +409,7 @@ elif page == "📂 Analyze Traffic":
     if uploaded:
         max_rows = st.slider("Max rows to analyze", 50, 2000, 300, 50)
 
-        if st.button("🚀 Run Analysis"):
+        if st.button("Run Analysis"):
             with st.spinner("Analyzing traffic..."):
                 df_raw = pd.read_csv(uploaded, low_memory=False)
                 st.info(f"Loaded {len(df_raw)} rows. Analyzing first {max_rows}...")
@@ -359,9 +426,9 @@ elif page == "📂 Analyze Traffic":
             allows = (results_df["Action"] == "ALLOW").sum()
 
             c1.metric("Total Flows",  total)
-            c2.metric("🚫 Blocked",  blocks, delta=f"{blocks/total*100:.1f}%")
-            c3.metric("⚠️ Alerts",   alerts, delta=f"{alerts/total*100:.1f}%")
-            c4.metric("✅ Allowed",  allows, delta=f"{allows/total*100:.1f}%")
+            c2.metric("Blocked",  blocks, delta=f"{blocks/total*100:.1f}%")
+            c3.metric("Alerts",   alerts, delta=f"{alerts/total*100:.1f}%")
+            c4.metric("Allowed",  allows, delta=f"{allows/total*100:.1f}%")
 
             # Charts
             col1, col2 = st.columns(2)
@@ -385,7 +452,7 @@ elif page == "📂 Analyze Traffic":
             # Download
             csv_out = results_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                "📥 Download Results CSV",
+                "Download Results CSV",
                 csv_out,
                 "ids_results.csv",
                 "text/csv",
@@ -393,15 +460,15 @@ elif page == "📂 Analyze Traffic":
 
 
 # ── Train Model ───────────────────────────────────────────────────────────────
-elif page == "⚙️ Train Model":
-    st.markdown("## ⚙️ Train ML Model")
+elif page == "Train Model":
+    st.markdown("## Train ML Model")
     st.markdown("Upload a CSV with **normal (BENIGN) traffic** to train the Isolation Forest.")
 
     train_file = st.file_uploader("Upload Training CSV", type=["csv"], key="train")
     contamination = st.slider("Contamination (expected anomaly % in training data)", 0.01, 0.20, 0.05, 0.01)
     n_estimators  = st.slider("Number of Trees", 50, 300, 100, 50)
 
-    if train_file and st.button("🧠 Train Model"):
+    if train_file and st.button("Train Model"):
         with st.spinner("Training..."):
             df_train = pd.read_csv(train_file, low_memory=False)
 
@@ -427,13 +494,12 @@ elif page == "⚙️ Train Model":
             ml_detector.train(normal_flows)
             ml_detector.save("models/isolation_forest.pkl")
 
-        st.success(f"✅ Model trained on {len(normal_flows)} flows and saved!")
-        st.balloons()
+        st.success(f"Model trained on {len(normal_flows)} flows and saved.")
 
 
 # ── Rules Viewer ──────────────────────────────────────────────────────────────
-elif page == "📋 Rules Viewer":
-    st.markdown("## 📋 Signature Rules")
+elif page == "Rules Viewer":
+    st.markdown("## Signature Rules")
     st.markdown(f"**{len(rule_engine.rules)} rules loaded** from `config/rules.yaml`")
 
     # Filter
@@ -450,10 +516,10 @@ elif page == "📋 Rules Viewer":
     ]
 
     SEV_COLORS = {
-        "CRITICAL": "#ff0033",
-        "HIGH":     "#ff8c00",
-        "MEDIUM":   "#ffd700",
-        "LOW":      "#00c853",
+        "CRITICAL": "#ef4444",
+        "HIGH":     "#f97316",
+        "MEDIUM":   "#f59e0b",
+        "LOW":      "#22c55e",
     }
 
     for rule in filtered:
