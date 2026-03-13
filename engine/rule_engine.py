@@ -74,7 +74,7 @@ class RuleEngine:
         print(f"[RuleEngine] Loaded {len(self.rules)} rules from {rules_path}")
 
     def _load_rules(self) -> list:
-        with open(self.rules_path, "r") as f:
+        with open(self.rules_path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
         return data.get("rules", [])
 

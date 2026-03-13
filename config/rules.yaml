@@ -14,6 +14,159 @@
 # ============================================================
 
 rules:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NETWORK ANOMALY DETECTION (Basic)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: NET-001
+    name: "Unusual Port Traffic"
+    category: Anomaly
+    severity: LOW
+    confidence: 0.60
+    conditions:
+      - { field: dst_port, op: ">", value: 49152 }
+      - { field: pkt_count, op: ">", value: 50 }
+
+  - id: NET-002
+    name: "High Byte Transfer Rate"
+    category: Anomaly
+    severity: MEDIUM
+    confidence: 0.70
+    conditions:
+      - { field: flow_bytes_per_sec, op: ">", value: 10000000 }
+      - { field: duration, op: ">", value: 60 }
+
+  - id: NET-003
+    name: "Long Duration Connection"
+    category: Anomaly
+    severity: LOW
+    confidence: 0.65
+    conditions:
+      - { field: duration, op: ">", value: 3600000 }
+      - { field: byte_count, op: "<", value: 1000 }
+
+  - id: NET-004
+    name: "Tiny Packet Flood"
+    category: DoS
+    severity: MEDIUM
+    confidence: 0.75
+    conditions:
+      - { field: avg_pkt_size, op: "<", value: 100 }
+      - { field: pkt_count, op: ">", value: 500 }
+      - { field: flow_pkts_per_sec, op: ">", value: 200 }
+
+  - id: NET-005
+    name: "Asymmetric Traffic Pattern"
+    category: Anomaly
+    severity: MEDIUM
+    confidence: 0.72
+    conditions:
+      - { field: fwd_pkt_count, op: ">", value: 100 }
+      - { field: bwd_pkt_count, op: "<", value: 5 }
+      - { field: duration, op: ">", value: 1000 }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PROTOCOL FLAG ANOMALIES (Basic)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: PROTO-001
+    name: "TCP Flag Combination Anomaly (SYN+FIN)"
+    category: Anomaly
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: syn_flag_count, op: ">", value: 0 }
+      - { field: fin_flag_count, op: ">", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  - id: PROTO-002
+    name: "TCP Flag Combination Anomaly (SYN+RST)"
+    category: Anomaly
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: syn_flag_count, op: ">", value: 0 }
+      - { field: rst_flag_count, op: ">", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  - id: PROTO-003
+    name: "TCP Flag Combination Anomaly (FIN+RST)"
+    category: Anomaly
+    severity: MEDIUM
+    confidence: 0.82
+    conditions:
+      - { field: fin_flag_count, op: ">", value: 0 }
+      - { field: rst_flag_count, op: ">", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  - id: PROTO-004
+    name: "TCP NULL Scan (No Flags Set)"
+    category: Probe
+    severity: MEDIUM
+    confidence: 0.85
+    conditions:
+      - { field: syn_flag_count, op: "==", value: 0 }
+      - { field: ack_flag_count, op: "==", value: 0 }
+      - { field: fin_flag_count, op: "==", value: 0 }
+      - { field: rst_flag_count, op: "==", value: 0 }
+      - { field: psh_flag_count, op: "==", value: 0 }
+      - { field: urg_flag_count, op: "==", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  - id: PROTO-005
+    name: "TCP XMAS Scan (FIN+PSH+URG)"
+    category: Probe
+    severity: MEDIUM
+    confidence: 0.85
+    conditions:
+      - { field: fin_flag_count, op: ">", value: 0 }
+      - { field: psh_flag_count, op: ">", value: 0 }
+      - { field: urg_flag_count, op: ">", value: 0 }
+      - { field: syn_flag_count, op: "==", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  - id: PROTO-006
+    name: "ACK Scan"
+    category: Probe
+    severity: MEDIUM
+    confidence: 0.80
+    conditions:
+      - { field: ack_flag_count, op: ">", value: 5 }
+      - { field: syn_flag_count, op: "==", value: 0 }
+      - { field: fin_flag_count, op: "==", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  - id: PROTO-007
+    name: "Invalid TCP Window Size"
+    category: Anomaly
+    severity: LOW
+    confidence: 0.68
+    conditions:
+      - { field: window_size, op: "==", value: 0 }
+      - { field: syn_flag_count, op: "==", value: 0 }
+      - { field: protocol_type, op: "==", value: 6 }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPEN REDIRECT (Basic)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: REDIRECT-001
+    name: "Open Redirect via URL Parameter"
+    category: Injection
+    severity: MEDIUM
+    confidence: 0.82
+    conditions:
+      - { field: url_param_redirect, op: "==", value: true }
+      - { field: redirect_external, op: "==", value: true }
+
+  - id: REDIRECT-002
+    name: "Open Redirect with Encoded URL"
+    category: Injection
+    severity: MEDIUM
+    confidence: 0.80
+    conditions:
+      - { field: encoded_redirect, op: "==", value: true }
+      - { field: redirect_external, op: "==", value: true }
 
   # ── DoS / DDoS ─────────────────────────────────────────────────────────────
 
@@ -23,9 +176,9 @@ rules:
     severity: CRITICAL
     confidence: 0.95
     conditions:
-      - { field: syn_flag_count,    op: ">",  value: 100 }
-      - { field: ack_flag_count,    op: "<",  value: 5   }
-      - { field: flow_pkts_per_sec, op: ">",  value: 1000 }
+      - { field: syn_flag_count, op: ">", value: 100 }
+      - { field: ack_flag_count, op: "<", value: 5 }
+      - { field: flow_pkts_per_sec, op: ">", value: 1000 }
 
   - id: DOS-002
     name: "UDP Flood"
@@ -33,9 +186,9 @@ rules:
     severity: HIGH
     confidence: 0.88
     conditions:
-      - { field: protocol_type,     op: "==", value: 17  }   # UDP = 17
-      - { field: flow_pkts_per_sec, op: ">",  value: 500 }
-      - { field: byte_count,        op: ">",  value: 100000 }
+      - { field: protocol_type, op: "==", value: 17 }
+      - { field: flow_pkts_per_sec, op: ">", value: 500 }
+      - { field: byte_count, op: ">", value: 100000 }
 
   - id: DOS-003
     name: "ICMP Flood (Ping Flood)"
@@ -43,11 +196,11 @@ rules:
     severity: HIGH
     confidence: 0.90
     conditions:
-      - { field: protocol_type,     op: "==", value: 1   }   # ICMP = 1
-      - { field: pkt_count,         op: ">",  value: 200 }
-      - { field: flow_pkts_per_sec, op: ">",  value: 300 }
+      - { field: protocol_type, op: "==", value: 1 }
+      - { field: pkt_count, op: ">", value: 200 }
+      - { field: flow_pkts_per_sec, op: ">", value: 300 }
 
-  # ── Port Scanning / Probing ─────────────────────────────────────────────────
+  # ── Port Scanning / Probing ────────────────────────────────────────────────
 
   - id: PROBE-001
     name: "Port Scan (Low Duration, Many Packets)"
@@ -55,10 +208,10 @@ rules:
     severity: MEDIUM
     confidence: 0.82
     conditions:
-      - { field: duration,          op: "<",  value: 500  }   # very short flows
-      - { field: pkt_count,         op: ">",  value: 20   }
-      - { field: syn_flag_count,    op: ">",  value: 10   }
-      - { field: ack_flag_count,    op: "<",  value: 3    }
+      - { field: duration, op: "<", value: 500 }
+      - { field: pkt_count, op: ">", value: 20 }
+      - { field: syn_flag_count, op: ">", value: 10 }
+      - { field: ack_flag_count, op: "<", value: 3 }
 
   - id: PROBE-002
     name: "Stealth Scan (FIN/NULL/XMAS)"
@@ -66,9 +219,9 @@ rules:
     severity: HIGH
     confidence: 0.85
     conditions:
-      - { field: fin_flag_count,    op: ">",  value: 5  }
-      - { field: syn_flag_count,    op: "<",  value: 2  }
-      - { field: ack_flag_count,    op: "<",  value: 2  }
+      - { field: fin_flag_count, op: ">", value: 5 }
+      - { field: syn_flag_count, op: "<", value: 2 }
+      - { field: ack_flag_count, op: "<", value: 2 }
 
   - id: PROBE-003
     name: "Service Version Scan"
@@ -76,11 +229,11 @@ rules:
     severity: LOW
     confidence: 0.70
     conditions:
-      - { field: pkt_count,         op: ">",  value: 10  }
-      - { field: byte_count,        op: "<",  value: 500 }
-      - { field: duration,          op: "<",  value: 200 }
+      - { field: pkt_count, op: ">", value: 10 }
+      - { field: byte_count, op: "<", value: 500 }
+      - { field: duration, op: "<", value: 200 }
 
-  # ── Brute Force ─────────────────────────────────────────────────────────────
+  # ── Brute Force ────────────────────────────────────────────────────────────
 
   - id: BRUTE-001
     name: "SSH Brute Force"
@@ -88,9 +241,9 @@ rules:
     severity: HIGH
     confidence: 0.87
     conditions:
-      - { field: dst_port,          op: "==", value: 22   }
-      - { field: pkt_count,         op: ">",  value: 50   }
-      - { field: flow_pkts_per_sec, op: ">",  value: 10   }
+      - { field: dst_port, op: "==", value: 22 }
+      - { field: pkt_count, op: ">", value: 50 }
+      - { field: flow_pkts_per_sec, op: ">", value: 10 }
 
   - id: BRUTE-002
     name: "FTP Brute Force"
@@ -98,9 +251,9 @@ rules:
     severity: HIGH
     confidence: 0.85
     conditions:
-      - { field: dst_port,          op: "==", value: 21  }
-      - { field: pkt_count,         op: ">",  value: 30  }
-      - { field: rst_flag_count,    op: ">",  value: 5   }
+      - { field: dst_port, op: "==", value: 21 }
+      - { field: pkt_count, op: ">", value: 30 }
+      - { field: rst_flag_count, op: ">", value: 5 }
 
   - id: BRUTE-003
     name: "HTTP Brute Force (Login)"
@@ -108,33 +261,11 @@ rules:
     severity: MEDIUM
     confidence: 0.78
     conditions:
-      - { field: dst_port,          op: "==", value: 80  }
-      - { field: pkt_count,         op: ">",  value: 100 }
-      - { field: flow_bytes_per_sec,op: "<",  value: 1000 }
+      - { field: dst_port, op: "==", value: 80 }
+      - { field: pkt_count, op: ">", value: 100 }
+      - { field: flow_bytes_per_sec, op: "<", value: 1000 }
 
-  # ── Data Exfiltration ───────────────────────────────────────────────────────
-
-  - id: EXFIL-001
-    name: "Large Outbound Transfer"
-    category: Exfiltration
-    severity: HIGH
-    confidence: 0.75
-    conditions:
-      - { field: byte_count,        op: ">",  value: 5000000 }
-      - { field: bwd_pkt_len_mean,  op: ">",  value: 1000    }
-      - { field: duration,          op: ">",  value: 5000    }
-
-  - id: EXFIL-002
-    name: "DNS Tunneling (Large DNS Payload)"
-    category: Exfiltration
-    severity: HIGH
-    confidence: 0.80
-    conditions:
-      - { field: dst_port,          op: "==", value: 53  }
-      - { field: avg_pkt_size,      op: ">",  value: 300 }
-      - { field: pkt_count,         op: ">",  value: 50  }
-
-  # ── Suspicious Flags ────────────────────────────────────────────────────────
+  # ── Suspicious Flags ───────────────────────────────────────────────────────
 
   - id: MISC-001
     name: "URG Flag Anomaly"
@@ -142,7 +273,7 @@ rules:
     severity: MEDIUM
     confidence: 0.72
     conditions:
-      - { field: urg_flag_count,    op: ">",  value: 10 }
+      - { field: urg_flag_count, op: ">", value: 10 }
 
   - id: MISC-002
     name: "RST Storm"
@@ -150,5 +281,121 @@ rules:
     severity: MEDIUM
     confidence: 0.76
     conditions:
-      - { field: rst_flag_count,    op: ">",  value: 50 }
-      - { field: flow_pkts_per_sec, op: ">",  value: 100 }
+      - { field: rst_flag_count, op: ">", value: 50 }
+      - { field: flow_pkts_per_sec, op: ">", value: 100 }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CROSS-SITE SCRIPTING (XSS) ATTACKS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: XSS-001
+    name: "Reflected XSS via Query Parameter"
+    category: Injection
+    severity: HIGH
+    confidence: 0.91
+    conditions:
+      - { field: url_param_xss, op: "==", value: true }
+      - { field: http_method, op: "==", value: "GET" }
+
+  - id: XSS-002
+    name: "Stored XSS via POST Body"
+    category: Injection
+    severity: HIGH
+    confidence: 0.90
+    conditions:
+      - { field: post_body_xss, op: "==", value: true }
+      - { field: http_method, op: "==", value: "POST" }
+
+  - id: XSS-003
+    name: "DOM-Based XSS Attempt"
+    category: Injection
+    severity: HIGH
+    confidence: 0.85
+    conditions:
+      - { field: url_fragment_xss, op: "==", value: true }
+      - { field: http_method, op: "==", value: "GET" }
+
+  - id: XSS-004
+    name: "XSS via HTTP Header"
+    category: Injection
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: any_header_xss, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: XSS-005
+    name: "Unicode Encoding XSS Bypass"
+    category: Injection
+    severity: MEDIUM
+    confidence: 0.80
+    conditions:
+      - { field: unicode_xss_payload, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: XSS-006
+    name: "XSS with Event Handler"
+    category: Injection
+    severity: HIGH
+    confidence: 0.89
+    conditions:
+      - { field: event_handler_xss, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SQL INJECTION ATTACKS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: SQLI-001
+    name: "SQL Injection via Query Parameter"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.95
+    conditions:
+      - { field: url_param_sqli, op: "==", value: true }
+      - { field: http_method, op: "==", value: "GET" }
+
+  - id: SQLI-002
+    name: "SQL Injection via POST Body"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.94
+    conditions:
+      - { field: post_body_sqli, op: "==", value: true }
+      - { field: http_method, op: "==", value: "POST" }
+
+  - id: SQLI-003
+    name: "Blind SQL Injection Attempt"
+    category: Injection
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: blind_sqli_pattern, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: SQLI-004
+    name: "Union-Based SQL Injection"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.93
+    conditions:
+      - { field: union_sqli_pattern, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: SQLI-005
+    name: "Time-Based Blind SQL Injection"
+    category: Injection
+    severity: HIGH
+    confidence: 0.86
+    conditions:
+      - { field: time_sqli_pattern, op: "==", value: true }
+      - { field: response_time_abnormal, op: "==", value: true }
+
+  - id: SQLI-006
+    name: "Error-Based SQL Injection"
+    category: Injection
+    severity: HIGH
+    confidence: 0.89
+    conditions:
+      - { field: error_sqli_pattern, op: "==", value: true }
+      - { field: http_response_code, op: "==", value: 500 }
