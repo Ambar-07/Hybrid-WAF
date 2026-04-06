@@ -399,3 +399,249 @@ rules:
     conditions:
       - { field: error_sqli_pattern, op: "==", value: true }
       - { field: http_response_code, op: "==", value: 500 }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # COMMAND INJECTION ATTACKS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: CMDI-001
+    name: "OS Command Injection via Query Parameter"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.95
+    conditions:
+      - { field: url_param_cmdi, op: "==", value: true }
+      - { field: http_method, op: "==", value: "GET" }
+
+  - id: CMDI-002
+    name: "OS Command Injection via POST Body"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.94
+    conditions:
+      - { field: post_body_cmdi, op: "==", value: true }
+      - { field: http_method, op: "==", value: "POST" }
+
+  - id: CMDI-003
+    name: "Shell Metacharacter Injection"
+    category: Injection
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: shell_metachar_pattern, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: CMDI-004
+    name: "Blind Command Injection (Time-Based)"
+    category: Injection
+    severity: HIGH
+    confidence: 0.85
+    conditions:
+      - { field: blind_cmdi_pattern, op: "==", value: true }
+      - { field: response_time_abnormal, op: "==", value: true }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PATH TRAVERSAL / LOCAL FILE INCLUSION (LFI)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: LFI-001
+    name: "Path Traversal via URL Parameter"
+    category: Injection
+    severity: HIGH
+    confidence: 0.92
+    conditions:
+      - { field: path_traversal_pattern, op: "==", value: true }
+      - { field: http_method, op: "==", value: "GET" }
+
+  - id: LFI-002
+    name: "Local File Inclusion via POST"
+    category: Injection
+    severity: HIGH
+    confidence: 0.90
+    conditions:
+      - { field: lfi_pattern, op: "==", value: true }
+      - { field: http_method, op: "==", value: "POST" }
+
+  - id: LFI-003
+    name: "Null Byte Injection in File Path"
+    category: Injection
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: null_byte_pattern, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: LFI-004
+    name: "Double URL-Encoded Path Traversal"
+    category: Injection
+    severity: HIGH
+    confidence: 0.87
+    conditions:
+      - { field: double_encoded_traversal, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SERVER-SIDE REQUEST FORGERY (SSRF)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: SSRF-001
+    name: "SSRF via URL Parameter (Internal IP)"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.93
+    conditions:
+      - { field: ssrf_internal_ip, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: SSRF-002
+    name: "SSRF via Cloud Metadata Endpoint"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.97
+    conditions:
+      - { field: ssrf_metadata_endpoint, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: SSRF-003
+    name: "SSRF via DNS Rebinding"
+    category: Injection
+    severity: HIGH
+    confidence: 0.85
+    conditions:
+      - { field: ssrf_dns_rebind, op: "==", value: true }
+      - { field: redirect_external, op: "==", value: true }
+
+  - id: SSRF-004
+    name: "SSRF via Localhost / Loopback Reference"
+    category: Injection
+    severity: CRITICAL
+    confidence: 0.95
+    conditions:
+      - { field: ssrf_loopback_ref, op: "==", value: true }
+      - { field: http_method, op: "!=", value: "" }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HTTP METHOD ABUSE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: HTTP-ABUSE-001
+    name: "Suspicious HTTP Method (TRACE/TRACK)"
+    category: Anomaly
+    severity: MEDIUM
+    confidence: 0.82
+    conditions:
+      - { field: http_method_trace, op: "==", value: true }
+
+  - id: HTTP-ABUSE-002
+    name: "HTTP CONNECT Tunnelling Attempt"
+    category: Anomaly
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: http_method_connect, op: "==", value: true }
+      - { field: dst_port, op: "!=", value: 443 }
+
+  - id: HTTP-ABUSE-003
+    name: "Oversized HTTP Header"
+    category: Anomaly
+    severity: MEDIUM
+    confidence: 0.78
+    conditions:
+      - { field: http_header_size, op: ">", value: 8192 }
+      - { field: http_method, op: "!=", value: "" }
+
+  - id: HTTP-ABUSE-004
+    name: "HTTP Request Smuggling Attempt"
+    category: Anomaly
+    severity: CRITICAL
+    confidence: 0.90
+    conditions:
+      - { field: transfer_encoding_anomaly, op: "==", value: true }
+      - { field: content_length_anomaly, op: "==", value: true }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DATA EXFILTRATION
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: EXFIL-001
+    name: "Large Outbound Data Transfer"
+    category: Exfiltration
+    severity: HIGH
+    confidence: 0.85
+    conditions:
+      - { field: bwd_byte_count, op: ">", value: 5000000 }
+      - { field: duration, op: ">", value: 30000 }
+
+  - id: EXFIL-002
+    name: "DNS Tunnelling (High Query Volume)"
+    category: Exfiltration
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: dst_port, op: "==", value: 53 }
+      - { field: pkt_count, op: ">", value: 300 }
+      - { field: avg_pkt_size, op: ">", value: 200 }
+
+  - id: EXFIL-003
+    name: "Repeated Outbound HTTPS to Rare Destination"
+    category: Exfiltration
+    severity: MEDIUM
+    confidence: 0.76
+    conditions:
+      - { field: dst_port, op: "==", value: 443 }
+      - { field: rare_destination, op: "==", value: true }
+      - { field: bwd_byte_count, op: ">", value: 1000000 }
+
+  - id: EXFIL-004
+    name: "ICMP Data Exfiltration (Large ICMP Payload)"
+    category: Exfiltration
+    severity: HIGH
+    confidence: 0.83
+    conditions:
+      - { field: protocol_type, op: "==", value: 1 }
+      - { field: avg_pkt_size, op: ">", value: 500 }
+      - { field: byte_count, op: ">", value: 100000 }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ADDITIONAL BRUTE-FORCE RULES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: BRUTE-004
+    name: "RDP Brute Force"
+    category: Brute-Force
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: dst_port, op: "==", value: 3389 }
+      - { field: pkt_count, op: ">", value: 40 }
+      - { field: flow_pkts_per_sec, op: ">", value: 8 }
+
+  - id: BRUTE-005
+    name: "SMTP Brute Force / Credential Stuffing"
+    category: Brute-Force
+    severity: MEDIUM
+    confidence: 0.80
+    conditions:
+      - { field: dst_port, op: "==", value: 25 }
+      - { field: pkt_count, op: ">", value: 50 }
+      - { field: rst_flag_count, op: ">", value: 5 }
+
+  - id: BRUTE-006
+    name: "HTTPS Login Brute Force"
+    category: Brute-Force
+    severity: MEDIUM
+    confidence: 0.79
+    conditions:
+      - { field: dst_port, op: "==", value: 443 }
+      - { field: pkt_count, op: ">", value: 100 }
+      - { field: flow_bytes_per_sec, op: "<", value: 1500 }
+
+  - id: BRUTE-007
+    name: "Telnet Brute Force"
+    category: Brute-Force
+    severity: HIGH
+    confidence: 0.86
+    conditions:
+      - { field: dst_port, op: "==", value: 23 }
+      - { field: pkt_count, op: ">", value: 30 }
+      - { field: flow_pkts_per_sec, op: ">", value: 10 }
