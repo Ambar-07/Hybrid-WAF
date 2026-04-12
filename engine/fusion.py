@@ -63,12 +63,14 @@ class FusionLayer:
         ml_weight:   float = 0.45,
         allow_threshold: float = 0.35,
         block_threshold: float = 0.70,
+        use_priority_logic: bool = True,
     ):
         assert abs(rule_weight + ml_weight - 1.0) < 1e-6, "Weights must sum to 1.0"
         self.rule_weight     = rule_weight
         self.ml_weight       = ml_weight
         self.allow_threshold = allow_threshold
         self.block_threshold = block_threshold
+        self.use_priority_logic = use_priority_logic
 
     def decide(
         self,
@@ -99,12 +101,23 @@ class FusionLayer:
             risk_score = round(risk_score + boost, 4)
 
         # ── Decision ──────────────────────────────────────────────────────────
-        if risk_score >= self.block_threshold:
-            action = "BLOCK"
-        elif risk_score >= self.allow_threshold:
-            action = "ALERT"
+        if self.use_priority_logic:
+            if rule_output.any_match:
+                action = "BLOCK"
+                risk_score = max(risk_score, 0.80)
+            elif ml_result.is_anomaly:
+                action = "ALERT"
+                risk_score = max(risk_score, 0.50)
+            else:
+                action = "ALLOW"
+                risk_score = min(risk_score, 0.34)
         else:
-            action = "ALLOW"
+            if risk_score >= self.block_threshold:
+                action = "BLOCK"
+            elif risk_score >= self.allow_threshold:
+                action = "ALERT"
+            else:
+                action = "ALLOW"
 
         # ── Reasoning ─────────────────────────────────────────────────────────
         matched_names = [r.rule_name for r in rule_output.matched_rules]

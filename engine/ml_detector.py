@@ -50,6 +50,7 @@ class MLDetector:
         self.random_state   = random_state
         self.model: IsolationForest = None
         self.trained = False
+        self.feature_count = None
 
     # ── Training ──────────────────────────────────────────────────────────────
     def train(self, normal_flows: List[FlowFeatures]) -> "MLDetector":
@@ -64,6 +65,7 @@ class MLDetector:
             n_jobs=-1,
         )
         self.model.fit(X)
+        self.feature_count = int(X.shape[1])
         self.trained = True
         print("[MLDetector] Training complete.")
         return self
@@ -73,7 +75,20 @@ class MLDetector:
         """Score a single flow."""
         self._check_trained()
         X = ff.normalized.reshape(1, -1)
-        raw_score = float(self.model.score_samples(X)[0])
+        X = self._align_feature_count(X)
+        try:
+            raw_score = float(self.model.score_samples(X)[0])
+        except ValueError as exc:
+            # Recover if model metadata changed and sklearn still reports mismatch.
+            self.feature_count = int(getattr(self.model, "n_features_in_", X.shape[1]))
+            X = self._align_feature_count(ff.normalized.reshape(1, -1))
+            try:
+                raw_score = float(self.model.score_samples(X)[0])
+            except ValueError:
+                raise ValueError(
+                    "Feature mismatch between extractor and model persists. "
+                    "Please retrain the model from the Train Model page."
+                ) from exc
 
         # Convert: Isolation Forest gives negative scores for anomalies
         # Typical range: -0.5 (anomaly) to 0.1 (normal)
@@ -92,7 +107,19 @@ class MLDetector:
         """Score multiple flows efficiently."""
         self._check_trained()
         X = np.array([f.normalized for f in flows])
-        raw_scores = self.model.score_samples(X)
+        X = self._align_feature_count(X)
+        try:
+            raw_scores = self.model.score_samples(X)
+        except ValueError as exc:
+            self.feature_count = int(getattr(self.model, "n_features_in_", X.shape[1]))
+            X = self._align_feature_count(np.array([f.normalized for f in flows]))
+            try:
+                raw_scores = self.model.score_samples(X)
+            except ValueError:
+                raise ValueError(
+                    "Feature mismatch between extractor and model persists. "
+                    "Please retrain the model from the Train Model page."
+                ) from exc
 
         return [
             MLResult(
@@ -108,7 +135,14 @@ class MLDetector:
     def save(self, path: str = "models/isolation_forest.pkl"):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "wb") as f:
-            pickle.dump({"model": self.model, "threshold": self.threshold}, f)
+            pickle.dump(
+                {
+                    "model": self.model,
+                    "threshold": self.threshold,
+                    "feature_count": self.feature_count,
+                },
+                f,
+            )
         print(f"[MLDetector] Model saved to {path}")
 
     def load(self, path: str = "models/isolation_forest.pkl"):
@@ -116,6 +150,7 @@ class MLDetector:
             data = pickle.load(f)
         self.model     = data["model"]
         self.threshold = data["threshold"]
+        self.feature_count = data.get("feature_count", getattr(self.model, "n_features_in_", None))
         self.trained   = True
         print(f"[MLDetector] Model loaded from {path}")
         return self
@@ -131,3 +166,21 @@ class MLDetector:
     def _check_trained(self):
         if not self.trained or self.model is None:
             raise RuntimeError("MLDetector is not trained. Call .train() or .load() first.")
+
+    def _align_feature_count(self, X: np.ndarray) -> np.ndarray:
+        """Align feature width with model expectation for backward compatibility."""
+        expected = int(
+            self.feature_count
+            if self.feature_count is not None
+            else getattr(self.model, "n_features_in_", X.shape[1])
+        )
+        current = int(X.shape[1])
+
+        if current == expected:
+            return X
+
+        if current > expected:
+            return X[:, :expected]
+
+        pad_width = expected - current
+        return np.pad(X, ((0, 0), (0, pad_width)), mode="constant", constant_values=0.0)

@@ -40,6 +40,11 @@ class RuleEngineOutput:
     results: List[RuleResult]
     highest_severity: str
     max_confidence: float
+    attack_type: str
+
+    @property
+    def rule_detected(self) -> bool:
+        return self.any_match
 
     @property
     def matched_rules(self) -> List[RuleResult]:
@@ -100,6 +105,7 @@ class RuleEngine:
             results=results,
             highest_severity=highest_severity if any_match else "NONE",
             max_confidence=max_confidence,
+            attack_type=matched[0].category if any_match else "NONE",
         )
 
     def _check_rule(self, rule: dict, ff: FlowFeatures) -> RuleResult:
@@ -143,12 +149,25 @@ class RuleEngine:
         return True, "; ".join(triggered)
 
     def _compare(self, actual, op: str, value) -> bool:
+        op = str(op).strip().lower()
+        actual_text = str(actual)
+        value_text = str(value)
+
+        if op == "contains":
+            return value_text.lower() in actual_text.lower()
+        if op == "startswith":
+            return actual_text.lower().startswith(value_text.lower())
+        if op == "endswith":
+            return actual_text.lower().endswith(value_text.lower())
+
         try:
             actual = float(actual)
             value_f = float(value)
         except (TypeError, ValueError):
             # String comparison
-            return str(actual).upper() == str(value).upper()
+            if op == "!=":
+                return actual_text.upper() != value_text.upper()
+            return actual_text.upper() == value_text.upper()
 
         ops = {
             ">":  actual > value_f,

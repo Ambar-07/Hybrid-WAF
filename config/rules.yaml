@@ -14,6 +14,50 @@
 # ============================================================
 
 rules:
+  # ── Localhost demo-friendly rules ────────────────────────────────────────
+
+  - id: DEMO-SQLI-001
+    name: "SQLi String in Payload"
+    category: SQLi
+    severity: HIGH
+    confidence: 0.90
+    conditions:
+      - { field: request_payload, op: "contains", value: "' OR 1=1" }
+
+  - id: DEMO-SQLI-002
+    name: "SQLi Comment Pattern in Payload"
+    category: SQLi
+    severity: HIGH
+    confidence: 0.88
+    conditions:
+      - { field: request_payload, op: "contains", value: "admin'--" }
+
+  - id: DEMO-XSS-001
+    name: "XSS Script Tag in Payload"
+    category: XSS
+    severity: HIGH
+    confidence: 0.90
+    conditions:
+      - { field: request_payload, op: "contains", value: "<script>" }
+
+  - id: DEMO-PROBE-001
+    name: "Sequential Probe-like Unique Ports"
+    category: Probe
+    severity: MEDIUM
+    confidence: 0.82
+    conditions:
+      - { field: unique_ports, op: ">", value: 12 }
+      - { field: packet_rate, op: ">", value: 5 }
+
+  - id: DEMO-BURST-001
+    name: "High Connection Burst"
+    category: DoS
+    severity: HIGH
+    confidence: 0.86
+    conditions:
+      - { field: connection_count, op: ">", value: 30 }
+      - { field: packet_rate, op: ">", value: 20 }
+
   # ═══════════════════════════════════════════════════════════════════════════
   # NETWORK ANOMALY DETECTION (Basic)
   # ═══════════════════════════════════════════════════════════════════════════

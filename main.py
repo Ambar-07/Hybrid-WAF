@@ -17,6 +17,8 @@ from engine.feature_extractor import FeatureExtractor
 from engine.rule_engine import RuleEngine
 from engine.ml_detector import MLDetector
 from engine.fusion import FusionLayer, FusionDecision
+from engine.preprocessing import Preprocessor
+from engine.evaluation import evaluate_predictions, actions_to_labels
 
 MODEL_PATH = "models/isolation_forest.pkl"
 RULES_PATH = "config/rules.yaml"
@@ -25,6 +27,7 @@ RULES_PATH = "config/rules.yaml"
 class HybridIDS:
     def __init__(self):
         self.extractor = FeatureExtractor()
+        self.preprocessor = Preprocessor()
         self.rule_engine = RuleEngine(rules_path=RULES_PATH)
         self.ml_detector = MLDetector()
         self.fusion = FusionLayer()
@@ -33,6 +36,7 @@ class HybridIDS:
     def train(self, csv_path: str):
         print(f"\n[IDS] Loading training data from: {csv_path}")
         df = pd.read_csv(csv_path, low_memory=False)
+        df = self.preprocessor.fit_transform(df)
         print(f"[IDS] Total rows: {len(df)}")
 
         # Keep only BENIGN flows for training the ML model
@@ -59,6 +63,7 @@ class HybridIDS:
     def analyze(self, csv_path: str, max_rows: int = 500) -> list:
         print(f"\n[IDS] Analyzing: {csv_path}")
         df = pd.read_csv(csv_path, low_memory=False).head(max_rows)
+        df = self.preprocessor.fit_transform(df)
         print(f"[IDS] Analyzing {len(df)} flows...")
 
         if not self.ml_detector.trained:
@@ -78,6 +83,7 @@ class HybridIDS:
             rule_out = self.rule_engine.evaluate(ff)
             ml_out   = self.ml_detector.predict(ff)
             decision = self.fusion.decide(rule_out, ml_out)
+            predicted_label = actions_to_labels([decision.action])[0]
 
             results.append({
                 "flow_idx":      i,
@@ -87,6 +93,7 @@ class HybridIDS:
                 "dst_port":      ff.dst_port,
                 "label":         ff.label,
                 "action":        decision.action,
+                "predicted_label": predicted_label,
                 "risk_score":    decision.risk_score,
                 "rule_matched":  decision.rule_matched,
                 "matched_rules": ", ".join(decision.matched_rule_names),
@@ -102,6 +109,15 @@ class HybridIDS:
         print(f"  🚫 BLOCK : {block_count}")
         print(f"  ⚠️  ALERT : {alert_count}")
         print(f"  ✅ ALLOW : {allow_count}")
+
+        label_col = self._find_label_col(df)
+        if label_col:
+            metrics = evaluate_predictions(df[label_col].tolist(), [r["predicted_label"] for r in results])
+            print("\n[IDS] Evaluation Metrics (vs ground truth):")
+            print(f"  Accuracy : {metrics['accuracy']:.4f}")
+            print(f"  Precision: {metrics['precision']:.4f}")
+            print(f"  Recall   : {metrics['recall']:.4f}")
+            print(f"  F1 Score : {metrics['f1_score']:.4f}")
 
         return results
 
