@@ -41,7 +41,26 @@ def _assert_localhost_ip(target_ip: str) -> None:
         raise ValueError("Only localhost target IP is allowed (127.0.0.1 or localhost).")
 
 
-def _http_log_row(target_url: str, payload: str, label: str, status: str, latency_ms: float, message: str) -> Dict[str, object]:
+def _payload_attack_type(payload: str) -> str:
+    text = str(payload or "").lower()
+    if any(sig in text for sig in ["' or 1=1", "union select", "admin'--"]):
+        return "SQL Injection"
+    if any(sig in text for sig in ["<script", "javascript:", "onerror="]):
+        return "XSS"
+    if any(sig in text for sig in ["../", "%2f", "/.env", "/wp-admin", "/admin"]):
+        return "Recon/Scan"
+    return "Suspicious"
+
+
+def _http_log_row(
+    target_url: str,
+    payload: str,
+    label: str,
+    status: str,
+    latency_ms: float,
+    message: str,
+    attack_type: str,
+) -> Dict[str, object]:
     parsed = urlparse(target_url)
     src_port = random.randint(20000, 65000)
     dst_port = parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -61,6 +80,7 @@ def _http_log_row(target_url: str, payload: str, label: str, status: str, latenc
         "status": status,
         "message": message,
         "label": label,
+        "attack_type": attack_type,
     }
 
 
@@ -81,7 +101,17 @@ def generate_normal_http(target_url: str, n: int = 25, delay: float = 0.05) -> L
             message = f"request_failed:{type(exc).__name__}"
 
         latency_ms = (time.perf_counter() - start) * 1000.0
-        logs.append(_http_log_row(target_url, payload="", label="BENIGN", status=status, latency_ms=latency_ms, message=message))
+        logs.append(
+            _http_log_row(
+                target_url,
+                payload="",
+                label="BENIGN",
+                status=status,
+                latency_ms=latency_ms,
+                message=message,
+                attack_type="Normal",
+            )
+        )
         if delay > 0:
             time.sleep(delay)
 
@@ -109,7 +139,17 @@ def generate_payload_http(target_url: str, payloads: Iterable[str], delay: float
             message = f"request_failed:{type(exc).__name__}"
 
         latency_ms = (time.perf_counter() - start) * 1000.0
-        logs.append(_http_log_row(target_url, payload=payload, label="MALICIOUS", status=status, latency_ms=latency_ms, message=message))
+        logs.append(
+            _http_log_row(
+                target_url,
+                payload=payload,
+                label="MALICIOUS",
+                status=status,
+                latency_ms=latency_ms,
+                message=message,
+                attack_type=_payload_attack_type(payload),
+            )
+        )
         if delay > 0:
             time.sleep(delay)
 
@@ -149,6 +189,7 @@ def generate_path_fuzz_http(target_url: str, paths: Iterable[str], delay: float 
                 status=status,
                 latency_ms=latency_ms,
                 message=message,
+                attack_type="Recon/Scan",
             )
         )
         if delay > 0:
@@ -203,6 +244,7 @@ def generate_login_burst_http(
                 status=status,
                 latency_ms=latency_ms,
                 message=message,
+                attack_type="Brute Force",
             )
         )
         if delay > 0:
@@ -250,6 +292,7 @@ def generate_port_probe(target_ip: str, start_port: int, end_port: int, delay: f
                 "status": status,
                 "message": message,
                 "label": "SUSPICIOUS",
+                "attack_type": "Recon/Scan",
             }
         )
         if delay > 0:
@@ -301,6 +344,7 @@ def generate_connection_burst(
             "status": status,
             "message": message,
             "label": "SUSPICIOUS",
+            "attack_type": "Burst/DoS",
         }
 
     logs: List[Dict[str, object]] = []
@@ -391,4 +435,86 @@ def generate_random_mixed_traffic(
         remaining -= min(batch, len(batch_logs))
 
     logs.sort(key=lambda row: str(row["timestamp"]))
+    return logs[:total]
+
+
+def generate_weighted_mixed_traffic(
+    target_url: str,
+    target_ip: str,
+    total_events: int = 120,
+    normal_ratio: float = 0.50,
+    suspicious_ratio: float = 0.25,
+    malicious_ratio: float = 0.25,
+    delay: float = 0.02,
+) -> List[Dict[str, object]]:
+    """Generate localhost traffic with explicit normal/suspicious/malicious ratio control."""
+    _assert_localhost_url(target_url)
+    _assert_localhost_ip(target_ip)
+
+    total = max(0, int(total_events))
+    if total == 0:
+        return []
+
+    nr = max(0.0, float(normal_ratio))
+    sr = max(0.0, float(suspicious_ratio))
+    mr = max(0.0, float(malicious_ratio))
+    ratio_sum = nr + sr + mr
+    if ratio_sum <= 0:
+        nr, sr, mr = 1.0, 0.0, 0.0
+    else:
+        nr, sr, mr = nr / ratio_sum, sr / ratio_sum, mr / ratio_sum
+
+    normal_count = int(round(total * nr))
+    suspicious_count = int(round(total * sr))
+    malicious_count = max(0, total - normal_count - suspicious_count)
+
+    logs: List[Dict[str, object]] = []
+    if normal_count > 0:
+        logs.extend(generate_normal_http(target_url=target_url, n=normal_count, delay=delay))
+
+    while suspicious_count > 0:
+        mode = random.choice(["probe", "burst", "login"])
+        batch = max(1, min(suspicious_count, random.randint(2, 6)))
+        if mode == "probe":
+            start_port = random.choice([8000, 8080, 5000])
+            batch_logs = generate_port_probe(target_ip=target_ip, start_port=start_port, end_port=start_port + batch, delay=delay)
+        elif mode == "login":
+            batch_logs = generate_login_burst_http(
+                target_url=target_url,
+                usernames=["admin", "root", "guest", "test"],
+                passwords=["123456", "password", "admin123", "qwerty"],
+                attempts=batch,
+                delay=delay,
+            )
+        else:
+            batch_logs = generate_connection_burst(
+                target_ip=target_ip,
+                port=random.choice([8000, 8080, 5000]),
+                count=batch,
+                concurrency=min(6, batch),
+                delay=delay,
+            )
+        logs.extend(batch_logs[:batch])
+        suspicious_count -= min(batch, len(batch_logs))
+
+    while malicious_count > 0:
+        mode = random.choice(["payload", "path"])
+        batch = max(1, min(malicious_count, random.randint(2, 6)))
+        if mode == "payload":
+            payload_bank = [
+                "' OR 1=1",
+                "UNION SELECT username,password FROM users",
+                "<script>alert(1)</script>",
+                "admin'--",
+            ]
+            sampled = random.sample(payload_bank, k=min(batch, len(payload_bank)))
+            batch_logs = generate_payload_http(target_url=target_url, payloads=sampled, delay=delay)
+        else:
+            path_bank = ["/admin", "/.env", "/wp-admin", "/../../etc/passwd", "/debug"]
+            sampled = random.sample(path_bank, k=min(batch, len(path_bank)))
+            batch_logs = generate_path_fuzz_http(target_url=target_url, paths=sampled, delay=delay)
+        logs.extend(batch_logs[:batch])
+        malicious_count -= min(batch, len(batch_logs))
+
+    logs.sort(key=lambda row: str(row.get("timestamp", "")))
     return logs[:total]

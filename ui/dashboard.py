@@ -829,6 +829,161 @@ def generate_demo_csv(mode: str, **kwargs):
     return df_generated
 
 
+def append_generated_logs(new_logs):
+    combined = st.session_state.get("generated_logs", []) + list(new_logs)
+    st.session_state["generated_logs"] = combined
+    return logs_to_structured_csv(combined, out_csv="capture/generated_traffic.csv")
+
+
+def infer_expected_attack(log_row: dict) -> str:
+    attack_type = str(log_row.get("attack_type", "")).strip()
+    if attack_type:
+        return attack_type
+
+    label = str(log_row.get("label", "BENIGN")).upper()
+    if label == "BENIGN":
+        return "Normal"
+    if label == "SUSPICIOUS":
+        return "Recon/Scan"
+    return "Malicious"
+
+
+def request_summary(log_row: dict) -> str:
+    payload = str(log_row.get("request_payload", "")).strip()
+    if payload:
+        return payload[:88]
+    message = str(log_row.get("message", "request"))
+    dst_port = log_row.get("dst_port", "?")
+    return f"{message} -> :{dst_port}"
+
+
+def extract_rule_explainability(rule_out, rule_lookup: dict, request_id: int):
+    explain_rows = []
+    for matched in rule_out.matched_rules:
+        definition = rule_lookup.get(matched.rule_id, {})
+        conditions = definition.get("conditions", [])
+        first_condition = conditions[0] if conditions else {}
+        field = str(first_condition.get("field", "unknown"))
+        pattern = str(first_condition.get("value", "n/a"))
+
+        if any(token in field for token in ["payload", "query", "body"]):
+            location = "query/body"
+        elif any(token in field for token in ["path", "url"]):
+            location = "path/url"
+        else:
+            location = "flow metadata"
+
+        explain_rows.append(
+            {
+                "request_id": request_id,
+                "rule_id": matched.rule_id,
+                "rule_name": matched.rule_name,
+                "severity": matched.severity,
+                "pattern": pattern,
+                "where_matched": location,
+                "details": matched.details,
+            }
+        )
+    return explain_rows
+
+
+def run_realtime_waf_simulation(log_rows):
+    if not log_rows:
+        return pd.DataFrame(), pd.DataFrame()
+
+    structured = logs_to_structured_csv(log_rows, out_csv="capture/generated_traffic.csv")
+    processed = preprocessor.fit_transform(structured.copy())
+    extractor.fit(processed)
+    flows = extractor.transform_df(processed)
+    rule_lookup = {str(rule.get("id")): rule for rule in rule_engine.rules}
+
+    sim_rows = []
+    explain_rows = []
+    for idx, (raw_row, ff) in enumerate(zip(log_rows, flows), start=1):
+        expected_attack = infer_expected_attack(raw_row)
+        rule_out = rule_engine.evaluate(ff)
+        ml_out = safe_ml_predict(ff, anomaly_hint=expected_attack.lower() != "normal")
+        decision = fusion.decide(rule_out, ml_out)
+
+        detected_attack = (
+            rule_out.attack_type
+            if rule_out.any_match and str(rule_out.attack_type).upper() != "NONE"
+            else ("Anomaly" if ml_out.is_anomaly else "Normal")
+        )
+
+        sim_rows.append(
+            {
+                "request_id": idx,
+                "timestamp": str(raw_row.get("timestamp", "")),
+                "request": request_summary(raw_row),
+                "expected_attack": expected_attack,
+                "detected_attack": detected_attack,
+                "matched_rules": ", ".join([r.rule_name for r in rule_out.matched_rules]) or "None",
+                "ml_score": round(float(ml_out.anomaly_score), 4),
+                "risk_score": round(float(decision.risk_score), 4),
+                "decision": decision.action,
+                "rule_score": round(float(decision.rule_score), 4),
+            }
+        )
+        explain_rows.extend(extract_rule_explainability(rule_out, rule_lookup, idx))
+
+    return pd.DataFrame(sim_rows), pd.DataFrame(explain_rows)
+
+
+def compute_detection_metrics(results_df: pd.DataFrame):
+    if results_df.empty:
+        return {}, pd.DataFrame()
+
+    expected_threat = results_df["expected_attack"].astype(str).str.lower() != "normal"
+    predicted_threat = results_df["decision"].astype(str) != "ALLOW"
+
+    tp = int((expected_threat & predicted_threat).sum())
+    tn = int((~expected_threat & ~predicted_threat).sum())
+    fp = int((~expected_threat & predicted_threat).sum())
+    fn = int((expected_threat & ~predicted_threat).sum())
+    total = max(1, len(results_df))
+
+    accuracy = (tp + tn) / total
+    precision = tp / max(1, tp + fp)
+    recall = tp / max(1, tp + fn)
+    detection_rate = tp / max(1, int(expected_threat.sum()))
+
+    non_normal = results_df[results_df["expected_attack"].astype(str).str.lower() != "normal"].copy()
+    if non_normal.empty:
+        per_attack = pd.DataFrame(columns=["expected_attack", "detection_rate"])
+    else:
+        per_attack = (
+            non_normal.assign(detected=non_normal["decision"].astype(str) != "ALLOW")
+            .groupby("expected_attack", as_index=False)["detected"]
+            .mean()
+            .rename(columns={"detected": "detection_rate"})
+        )
+        per_attack["detection_rate"] = (per_attack["detection_rate"] * 100).round(2)
+
+    metrics = {
+        "accuracy": round(float(accuracy), 4),
+        "precision": round(float(precision), 4),
+        "recall": round(float(recall), 4),
+        "false_positives": int(fp),
+        "detection_rate": round(float(detection_rate), 4),
+    }
+    return metrics, per_attack
+
+
+def style_decision_rows(df: pd.DataFrame):
+    palette = {
+        "ALLOW": "background-color: rgba(34, 197, 94, 0.12);",
+        "ALERT": "background-color: rgba(245, 158, 11, 0.14);",
+        "BLOCK": "background-color: rgba(239, 68, 68, 0.14);",
+    }
+
+    def _style_row(row):
+        rule = palette.get(str(row.get("decision", "")), "")
+        return [rule] * len(row)
+
+    return df.style.apply(_style_row, axis=1)
+
+
 def render_page_header(title: str, subtitle: str, eyebrow: str = "Operations"):
     st.markdown(
         f"""
@@ -1004,8 +1159,28 @@ elif page == "Traffic Generator":
         eyebrow="Synthetic Input",
     )
 
-    target_url = st.text_input("Local HTTP target", value="http://127.0.0.1:8000")
-    base_delay = st.slider("Request delay (seconds)", 0.0, 0.3, 0.05, 0.01)
+    ctl_col1, ctl_col2, ctl_col3 = st.columns((1.3, 1, 1))
+    with ctl_col1:
+        target_url = st.text_input("Local HTTP target", value="http://127.0.0.1:8000")
+    with ctl_col2:
+        base_delay = st.slider("Request delay (seconds)", 0.0, 0.3, 0.05, 0.01)
+    with ctl_col3:
+        max_sim_events = st.slider("Simulation request window", 10, 500, 120, 10, key="rt_max_events")
+
+    fusion_col1, fusion_col2, fusion_col3 = st.columns(3)
+    with fusion_col1:
+        tuned_rule_w = st.slider("Rule weight (simulation)", 0.0, 1.0, float(fusion.rule_weight), 0.05, key="rt_rule_weight")
+    with fusion_col2:
+        tuned_allow = st.slider("ALLOW/ALERT threshold", 0.1, 0.9, float(fusion.allow_threshold), 0.05, key="rt_allow_threshold")
+    with fusion_col3:
+        tuned_block = st.slider("ALERT/BLOCK threshold", 0.1, 1.0, float(fusion.block_threshold), 0.05, key="rt_block_threshold")
+
+    fusion.rule_weight = tuned_rule_w
+    fusion.ml_weight = 1.0 - tuned_rule_w
+    fusion.allow_threshold = tuned_allow
+    fusion.block_threshold = max(tuned_allow, tuned_block)
+
+    st.caption(f"Active fusion weights -> Rule: {fusion.rule_weight:.2f} | ML: {fusion.ml_weight:.2f}")
 
     row1_col1, row1_col2 = st.columns(2)
     row2_col1, row2_col2 = st.columns(2)
@@ -1145,12 +1320,209 @@ elif page == "Traffic Generator":
         except Exception as exc:
             st.error(str(exc))
 
+    st.markdown("#### Advanced Mixed Traffic Control")
+    ratio_col1, ratio_col2, ratio_col3, ratio_col4 = st.columns((1, 1, 1, 1.1))
+    with ratio_col1:
+        ratio_normal = st.slider("Normal ratio", 0.0, 1.0, 0.50, 0.05, key="mix_ratio_normal")
+    with ratio_col2:
+        ratio_suspicious = st.slider("Suspicious ratio", 0.0, 1.0, 0.25, 0.05, key="mix_ratio_suspicious")
+    with ratio_col3:
+        ratio_malicious = st.slider("Malicious ratio", 0.0, 1.0, 0.25, 0.05, key="mix_ratio_malicious")
+    ratio_sum = ratio_normal + ratio_suspicious + ratio_malicious
+    with ratio_col4:
+        st.markdown("<div style='margin-top:1.8rem;color:rgba(236,231,222,0.75)'>Scenario profile</div>", unsafe_allow_html=True)
+        if ratio_sum <= 0:
+            st.caption("Using fallback: 100% Normal")
+        else:
+            st.caption(
+                f"Normalized mix -> Normal {ratio_normal/ratio_sum:.0%}, "
+                f"Suspicious {ratio_suspicious/ratio_sum:.0%}, "
+                f"Malicious {ratio_malicious/ratio_sum:.0%}"
+            )
+
+    if st.button("Run Advanced Weighted Mix"):
+        try:
+            logs = tg.generate_weighted_mixed_traffic(
+                target_url=target_url,
+                target_ip=mix_target_ip,
+                total_events=int(mix_total),
+                normal_ratio=float(ratio_normal),
+                suspicious_ratio=float(ratio_suspicious),
+                malicious_ratio=float(ratio_malicious),
+                delay=float(base_delay),
+            )
+            df_gen = append_generated_logs(logs)
+            st.success(f"Generated weighted mixed rows: {len(df_gen)}")
+        except Exception as exc:
+            st.error(str(exc))
+
     current = st.session_state.get("generated_logs", [])
     st.info(f"Current generated events in session: {len(current)}")
     if st.button("Clear Generated Session Logs"):
         st.session_state["generated_logs"] = []
         logs_to_structured_csv([], out_csv="capture/generated_traffic.csv")
         st.success("Cleared session logs and reset capture/generated_traffic.csv")
+
+    st.markdown("---")
+    render_page_header(
+        "Real-Time WAF Simulation",
+        "Replay generated requests through Rule Engine + Isolation Forest + Risk Fusion and observe ALLOW/ALERT/BLOCK decisions live.",
+        eyebrow="Decision Pipeline",
+    )
+
+    sim_cfg1, sim_cfg2 = st.columns(2)
+    with sim_cfg1:
+        stream_mode = st.checkbox("Stream results request-by-request", value=True, key="rt_stream_mode")
+    with sim_cfg2:
+        stream_delay = st.slider("Streaming delay", 0.0, 0.25, 0.03, 0.01, key="rt_stream_delay")
+
+    run_col1, run_col2 = st.columns(2)
+    with run_col1:
+        run_simulation = st.button("Run Real-Time Simulation", use_container_width=True)
+    with run_col2:
+        replay_selected = st.button("Replay Selected Scenario", use_container_width=True)
+
+    scenario_history = st.session_state.get("scenario_history", [])
+    selected_history_idx = None
+    if scenario_history:
+        options = [f"{item['run_id']} ({item['rows']} requests)" for item in scenario_history]
+        selected_option = st.selectbox("Scenario history", options, key="scenario_history_select")
+        selected_history_idx = options.index(selected_option)
+
+    def _persist_simulation(results_df: pd.DataFrame, explain_df: pd.DataFrame, sim_logs):
+        st.session_state["rt_results"] = results_df.to_dict(orient="records")
+        st.session_state["rt_explain"] = explain_df.to_dict(orient="records")
+        run_id = time.strftime("%H:%M:%S")
+        history_item = {"run_id": run_id, "rows": len(sim_logs), "logs": list(sim_logs)}
+        updated = [history_item] + st.session_state.get("scenario_history", [])
+        st.session_state["scenario_history"] = updated[:8]
+
+    def _render_stream(results_df: pd.DataFrame):
+        metrics_ph = st.empty()
+        table_ph = st.empty()
+        timeline_ph = st.empty()
+        display_cols = [
+            "timestamp",
+            "request",
+            "expected_attack",
+            "detected_attack",
+            "matched_rules",
+            "ml_score",
+            "risk_score",
+            "decision",
+        ]
+        for i in range(1, len(results_df) + 1):
+            frame = results_df.head(i)
+            with metrics_ph.container():
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Allowed", int((frame["decision"] == "ALLOW").sum()))
+                m2.metric("Alerts", int((frame["decision"] == "ALERT").sum()))
+                m3.metric("Blocked", int((frame["decision"] == "BLOCK").sum()))
+
+            table_ph.dataframe(
+                style_decision_rows(frame[display_cols]),
+                use_container_width=True,
+                height=320,
+            )
+
+            timeline = frame[["timestamp", "expected_attack", "decision"]].tail(7)
+            timeline_lines = [f"[{str(t)}] {atk} -> {dec}" for t, atk, dec in timeline.itertuples(index=False)]
+            timeline_ph.code("\n".join(timeline_lines), language="text")
+
+            if stream_delay > 0:
+                time.sleep(stream_delay)
+
+    def _execute_simulation(sim_logs):
+        if not sim_logs:
+            st.warning("Generate traffic first, then run the simulation.")
+            return
+        with st.spinner("Running hybrid decision pipeline..."):
+            results_df, explain_df = run_realtime_waf_simulation(sim_logs)
+        _persist_simulation(results_df, explain_df, sim_logs)
+        if stream_mode and not results_df.empty:
+            _render_stream(results_df)
+
+    if run_simulation:
+        current_logs = st.session_state.get("generated_logs", [])
+        sim_logs = current_logs[-int(max_sim_events):]
+        _execute_simulation(sim_logs)
+
+    if replay_selected:
+        if selected_history_idx is None:
+            st.warning("No scenario history available yet.")
+        else:
+            replay_logs = scenario_history[selected_history_idx]["logs"]
+            _execute_simulation(replay_logs)
+
+    results_df = pd.DataFrame(st.session_state.get("rt_results", []))
+    explain_df = pd.DataFrame(st.session_state.get("rt_explain", []))
+
+    if not results_df.empty:
+        st.markdown("### Live Decision Counters")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Allowed", int((results_df["decision"] == "ALLOW").sum()))
+        c2.metric("Alerts", int((results_df["decision"] == "ALERT").sum()))
+        c3.metric("Blocked", int((results_df["decision"] == "BLOCK").sum()))
+
+        st.markdown("### Streaming Log Table")
+        display_cols = [
+            "timestamp",
+            "request",
+            "expected_attack",
+            "detected_attack",
+            "matched_rules",
+            "ml_score",
+            "risk_score",
+            "decision",
+        ]
+        st.dataframe(
+            style_decision_rows(results_df[display_cols]),
+            use_container_width=True,
+            height=360,
+        )
+
+        metrics, per_attack = compute_detection_metrics(results_df)
+        st.markdown("### Performance Metrics")
+        pm1, pm2, pm3, pm4, pm5 = st.columns(5)
+        pm1.metric("Accuracy", f"{metrics.get('accuracy', 0.0):.3f}")
+        pm2.metric("Precision", f"{metrics.get('precision', 0.0):.3f}")
+        pm3.metric("Recall", f"{metrics.get('recall', 0.0):.3f}")
+        pm4.metric("False Positives", int(metrics.get("false_positives", 0)))
+        pm5.metric("Detection Rate", f"{metrics.get('detection_rate', 0.0):.3f}")
+
+        if not per_attack.empty:
+            st.markdown("#### Detection Rate by Attack Type")
+            st.dataframe(per_attack, use_container_width=True)
+
+        st.markdown("### ML Anomaly Score Visualization")
+        ml_chart = results_df[["ml_score"]].copy()
+        ml_chart["threshold"] = float(getattr(ml_detector, "threshold", 0.55))
+        st.line_chart(ml_chart, use_container_width=True)
+
+        st.markdown("### Rule Explainability Panel")
+        if explain_df.empty:
+            st.info("No signature rules matched in the latest simulation window.")
+        else:
+            st.dataframe(
+                explain_df[
+                    [
+                        "request_id",
+                        "rule_id",
+                        "rule_name",
+                        "severity",
+                        "pattern",
+                        "where_matched",
+                        "details",
+                    ]
+                ],
+                use_container_width=True,
+                height=260,
+            )
+
+        st.markdown("### Timeline View")
+        timeline_df = results_df[["timestamp", "expected_attack", "decision"]].copy()
+        timeline_lines = [f"[{t}] {attack} -> {decision}" for t, attack, decision in timeline_df.itertuples(index=False)]
+        st.code("\n".join(timeline_lines[-18:]), language="text")
 
 
 elif page == "Analyze Traffic":
