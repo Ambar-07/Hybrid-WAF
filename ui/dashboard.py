@@ -56,7 +56,7 @@ theme_css_vars = """
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap');
 
 :root {
     __THEME_VARS__
@@ -224,6 +224,106 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     color: var(--site-context-metainfo-color);
     font-size: 0.95rem;
     line-height: 1.5;
+}
+
+.architecture-shell {
+    margin: 14px 0 28px;
+    padding: 14px 2px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+.architecture-track {
+    width: fit-content;
+    min-width: 100%;
+    margin: 0 auto;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+}
+.architecture-connector {
+    width: 52px;
+    min-width: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.architecture-connector-line {
+    position: relative;
+    width: 100%;
+    height: 1px;
+    background: rgba(236, 231, 222, 0.26);
+}
+.architecture-connector-line::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 7px solid rgba(236, 231, 222, 0.5);
+}
+.architecture-step {
+    width: 228px;
+    min-width: 228px;
+    min-height: 180px;
+    padding: 18px;
+    background: linear-gradient(180deg, rgba(27, 33, 43, 0.55) 0%, rgba(18, 22, 29, 0.72) 100%);
+    border: 1px solid rgba(236, 231, 222, 0.08);
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.architecture-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.architecture-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(172, 209, 255, 0.92);
+    background: rgba(96, 165, 250, 0.1);
+    border: 1px solid rgba(96, 165, 250, 0.25);
+}
+.architecture-icon .material-symbols-outlined {
+    font-size: 19px;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    line-height: 1;
+}
+.architecture-index {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(236, 231, 222, 0.7);
+    letter-spacing: 0.04em;
+}
+.architecture-title {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--site-context-ink);
+    line-height: 1.25;
+}
+.architecture-desc {
+    margin: 0;
+    color: var(--site-context-metainfo-color);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    max-width: 24ch;
+}
+@media (max-width: 860px) {
+    .architecture-shell {
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+    }
 }
 .block-badge {
     background: var(--danger);
@@ -607,23 +707,32 @@ if page == "Dashboard":
         eyebrow="Engineering Blueprint",
     )
 
-    steps = [
-        ("Traffic Input", "Raw network flows or PCAP/CSV"),
-        ("Feature Extraction", "35 statistical features per flow"),
-        ("Rule Engine", "12 signature rules across 5 categories"),
-        ("ML Detection", "Isolation Forest anomaly scoring"),
-        ("Risk Fusion", "Weighted decision -> ALLOW/ALERT/BLOCK"),
+    architecture_steps = [
+        {"idx": "01", "icon": "traffic", "title": "Traffic Input", "desc": "Ingest live flows or replayed PCAP/CSV streams."},
+        {"idx": "02", "icon": "schema", "title": "Feature Extraction", "desc": "Derive 35 normalized features per session."},
+        {"idx": "03", "icon": "gavel", "title": "Rule Engine", "desc": "Run deterministic signature checks across rule sets."},
+        {"idx": "04", "icon": "psychology", "title": "ML Detection", "desc": "Score anomalies with Isolation Forest."},
+        {"idx": "05", "icon": "shield", "title": "Risk Fusion", "desc": "Merge scores into ALLOW, ALERT, or BLOCK."},
     ]
-    for row in (steps[:3], steps[3:]):
-        cols = st.columns(len(row))
-        for col, (title, desc) in zip(cols, row):
-            with col:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-card-title">{title}</div>
-                    <div class="metric-card-desc">{desc}</div>
-                </div>
-                """, unsafe_allow_html=True)
+
+    architecture_markup = ['<section class="architecture-shell"><div class="architecture-track">']
+    for idx, step in enumerate(architecture_steps):
+        architecture_markup.append(
+            f'<article class="architecture-step">'
+            f'<div class="architecture-head">'
+            f'<span class="architecture-icon"><span class="material-symbols-outlined">{step["icon"]}</span></span>'
+            f'<span class="architecture-index">STAGE {step["idx"]}</span>'
+            f'</div>'
+            f'<h3 class="architecture-title">{step["title"]}</h3>'
+            f'<p class="architecture-desc">{step["desc"]}</p>'
+            f'</article>'
+        )
+        if idx < len(architecture_steps) - 1:
+            architecture_markup.append(
+                '<div class="architecture-connector"><span class="architecture-connector-line"></span></div>'
+            )
+    architecture_markup.append('</div></section>')
+    st.markdown(''.join(architecture_markup), unsafe_allow_html=True)
 
     render_page_header(
         "Quick Demo",
