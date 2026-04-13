@@ -64,6 +64,8 @@ st.markdown("""
     --danger: #ef4444;
     --warning: #f59e0b;
     --success: #22c55e;
+    --surface-soft: rgba(21, 24, 30, 0.58);
+    --surface-strong: rgba(21, 24, 30, 0.78);
 }
 
 html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
@@ -82,9 +84,9 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     color: var(--site-context-ink);
 }
 [data-testid="stAppViewContainer"] .main .block-container {
-    max-width: 1220px;
-    padding-top: 1.2rem;
-    padding-bottom: 3rem;
+    max-width: 1240px;
+    padding-top: 1.5rem;
+    padding-bottom: 3.25rem;
 }
 [data-testid="stHeader"] {
     background: color-mix(in srgb, var(--site-context-theme-color) 88%, transparent);
@@ -94,58 +96,153 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     border-right: 1px solid var(--site-context-border-soft);
 }
 .sidebar-title {
-    font-size: 1.3rem;
+    font-size: 1.28rem;
     font-weight: 600;
     letter-spacing: -0.4px;
     color: var(--site-context-ink);
-    margin-bottom: 8px;
+    margin: 2px 0 12px;
     line-height: 1.25;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 2px 0;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    background: rgba(236, 231, 222, 0.02);
-    padding: 8px 12px;
-    transition: all 0.2s ease;
+    position: relative;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    padding: 9px 11px 9px 40px;
+    min-height: 40px;
+    overflow: hidden;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
-    border-color: var(--site-context-border-strong);
-    background: var(--site-context-ink-03);
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.10) 0%, rgba(96, 165, 250, 0.02) 100%);
+    transform: translateX(2px);
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
-    border-color: rgba(96, 165, 250, 0.45);
-    background: rgba(96, 165, 250, 0.10);
-    box-shadow: none;
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.2) 0%, rgba(96, 165, 250, 0.04) 100%);
+    box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.22) inset, 0 8px 18px rgba(59, 130, 246, 0.14);
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div:first-child {
     display: none;
 }
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label::before {
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    font-family: 'Material Symbols Outlined';
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1;
+    color: rgba(176, 208, 255, 0.82);
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 2px;
+    height: calc(100% - 16px);
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.0) 0%, rgba(140, 186, 255, 0.95) 40%, rgba(96, 165, 250, 0.0) 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked)::after {
+    opacity: 1;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:nth-child(1)::before {
+    content: "dashboard";
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:nth-child(2)::before {
+    content: "lan";
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:nth-child(3)::before {
+    content: "monitoring";
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:nth-child(4)::before {
+    content: "model_training";
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:nth-child(5)::before {
+    content: "gavel";
+}
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
-    color: var(--site-context-ink);
+    color: rgba(236, 231, 222, 0.88);
     font-weight: 400;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     letter-spacing: 0;
     text-transform: none;
     margin: 0;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) p {
+    color: rgba(236, 231, 222, 1);
+}
+.sidebar-panel {
+    margin: 10px 0 14px;
+    padding: 12px 12px 11px;
+    background: linear-gradient(180deg, rgba(23, 28, 36, 0.72) 0%, rgba(18, 21, 28, 0.78) 100%);
+    border: 1px solid rgba(236, 231, 222, 0.10);
+    border-radius: 0;
+}
+.sidebar-panel-title {
+    margin: 0 0 9px;
+    color: var(--site-context-metainfo-color);
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.sidebar-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.sidebar-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    margin-right: 7px;
+}
+.sidebar-status {
+    display: inline-flex;
+    align-items: center;
+    color: var(--site-context-ink);
+    font-size: 0.9rem;
+}
+.sidebar-status.is-online .sidebar-status-dot {
+    background: rgba(74, 222, 128, 0.95);
+    box-shadow: 0 0 0 5px rgba(74, 222, 128, 0.14);
+}
+.sidebar-status.is-offline .sidebar-status-dot {
+    background: rgba(245, 158, 11, 0.95);
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.14);
+}
+.sidebar-rules {
+    color: var(--site-context-metainfo-color);
+    font-size: 0.82rem;
+}
+.sidebar-rules strong {
+    color: var(--site-context-ink);
+    font-weight: 600;
 }
 
 .hero-shell {
     position: relative;
     width: 100%;
-    min-height: 280px;
-    padding: 56px 46px;
-    margin: 4px 0 24px 0;
+    min-height: 292px;
+    padding: 58px 52px;
+    margin: 8px 0 30px;
     color: var(--site-context-ink);
     background:
         radial-gradient(circle at 14% 24%, rgba(255, 188, 145, 0.25) 0%, rgba(255, 188, 145, 0) 42%),
         radial-gradient(circle at 86% 8%, rgba(167, 194, 255, 0.24) 0%, rgba(167, 194, 255, 0) 40%),
         radial-gradient(circle at 50% 88%, rgba(246, 181, 177, 0.2) 0%, rgba(246, 181, 177, 0) 45%),
         var(--site-context-theme-color);
-    border: 1px solid var(--panel-border);
-    border-radius: 16px;
+    border: 1px solid rgba(236, 231, 222, 0.10);
+    border-radius: 0;
 }
 .hero-kicker {
     font-size: 0.95rem;
@@ -157,26 +254,27 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     line-height: 1.5;
 }
 .hero-title {
-    font-size: clamp(2.3rem, 5vw, 3.75rem);
+    max-width: 14ch;
+    font-size: clamp(2.4rem, 5vw, 3.85rem);
     font-weight: 600;
-    letter-spacing: -1.2px;
+    letter-spacing: -1.3px;
     text-transform: none;
     line-height: 1.05;
     margin: 0;
 }
 .hero-sub {
     margin-top: 14px;
-    max-width: 720px;
-    font-size: 1.125rem;
-    line-height: 1.38;
-    color: var(--site-context-ink-82);
+    max-width: 64ch;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: rgba(236, 231, 222, 0.8);
 }
 
 .light-shell {
     background: transparent;
     border: none;
     border-radius: 0;
-    padding: 10px 0 6px 0;
+    padding: 10px 0 8px;
     margin: 0;
 }
 .section-kicker {
@@ -201,6 +299,7 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     color: var(--site-context-metainfo-color);
     font-size: 1rem;
     line-height: 1.5;
+    max-width: 70ch;
 }
 
 .metric-card {
@@ -227,8 +326,8 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
 }
 
 .architecture-shell {
-    margin: 14px 0 28px;
-    padding: 14px 2px 10px;
+    margin: 16px 0 30px;
+    padding: 14px 2px 12px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
@@ -238,13 +337,13 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     min-width: 100%;
     margin: 0 auto;
     display: flex;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
 }
 .architecture-connector {
-    width: 52px;
-    min-width: 52px;
+    width: 56px;
+    min-width: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -252,8 +351,9 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
 .architecture-connector-line {
     position: relative;
     width: 100%;
-    height: 1px;
-    background: rgba(236, 231, 222, 0.26);
+    height: 2px;
+    background: linear-gradient(90deg, rgba(236, 231, 222, 0.10) 0%, rgba(140, 186, 255, 0.45) 50%, rgba(236, 231, 222, 0.10) 100%);
+    animation: flowPulse 3.2s ease-in-out infinite;
 }
 .architecture-connector-line::after {
     content: "";
@@ -264,19 +364,25 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
     height: 0;
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
-    border-left: 7px solid rgba(236, 231, 222, 0.5);
+    border-left: 7px solid rgba(167, 202, 255, 0.72);
 }
 .architecture-step {
     width: 228px;
     min-width: 228px;
-    min-height: 180px;
+    min-height: 186px;
     padding: 18px;
-    background: linear-gradient(180deg, rgba(27, 33, 43, 0.55) 0%, rgba(18, 22, 29, 0.72) 100%);
-    border: 1px solid rgba(236, 231, 222, 0.08);
+    background: linear-gradient(180deg, rgba(27, 33, 43, 0.58) 0%, rgba(17, 20, 28, 0.84) 100%);
+    border: 1px solid rgba(236, 231, 222, 0.09);
     border-radius: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    transition: transform 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+}
+.architecture-step:hover {
+    transform: translateY(-3px) scale(1.015);
+    border-color: rgba(140, 186, 255, 0.4);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(140, 186, 255, 0.12);
 }
 .architecture-head {
     display: flex;
@@ -307,7 +413,7 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
 }
 .architecture-title {
     margin: 0;
-    font-size: 0.98rem;
+    font-size: 1.02rem;
     font-weight: 600;
     color: var(--site-context-ink);
     line-height: 1.25;
@@ -315,15 +421,13 @@ code, .stCode, .stTextArea textarea, .stTextInput input {
 .architecture-desc {
     margin: 0;
     color: var(--site-context-metainfo-color);
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     line-height: 1.45;
     max-width: 24ch;
 }
-@media (max-width: 860px) {
-    .architecture-shell {
-        margin-bottom: 20px;
-        padding-bottom: 14px;
-    }
+@keyframes flowPulse {
+    0%, 100% { opacity: 0.72; }
+    50% { opacity: 1; }
 }
 .block-badge {
     background: var(--danger);
@@ -390,6 +494,7 @@ div[data-testid="stMetric"] {
 }
 [data-testid="stButton"] button:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
     box-shadow:
         rgba(255, 255, 255, 0.2) 0px 0.5px 0px 0px inset,
         rgba(0, 0, 0, 0.2) 0px 0px 0px 0.5px inset,
@@ -475,11 +580,55 @@ a:hover {
 @media (max-width: 920px) {
     .hero-shell {
         min-height: 240px;
-        padding: 36px 24px;
+        padding: 40px 22px;
     }
     .section-title {
         font-size: clamp(2rem, 9vw, 2.25rem);
         letter-spacing: -0.9px;
+    }
+}
+@media (max-width: 1024px) {
+    .architecture-track {
+        justify-content: flex-start;
+    }
+}
+@media (max-width: 860px) {
+    .architecture-shell {
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        overflow: hidden;
+    }
+    .architecture-track {
+        width: 100%;
+        min-width: 100%;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+    .architecture-step {
+        width: min(100%, 420px);
+        min-width: 0;
+        min-height: 160px;
+    }
+    .architecture-connector {
+        width: 2px;
+        min-width: 2px;
+        height: 26px;
+    }
+    .architecture-connector-line {
+        width: 2px;
+        height: 26px;
+        background: linear-gradient(180deg, rgba(236, 231, 222, 0.10) 0%, rgba(140, 186, 255, 0.55) 50%, rgba(236, 231, 222, 0.10) 100%);
+    }
+    .architecture-connector-line::after {
+        right: -2px;
+        top: auto;
+        bottom: -6px;
+        border-top: 7px solid rgba(167, 202, 255, 0.72);
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 0;
     }
 }
 </style>
@@ -516,13 +665,22 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("**Model Status**")
-    if ml_detector.trained:
-        st.success("ML Model Loaded")
-    else:
-        st.warning("No model found. Train first.")
+    status_class = "is-online" if ml_detector.trained else "is-offline"
+    status_text = "ML model loaded" if ml_detector.trained else "Model unavailable"
+    status_hint = "Ready for anomaly scoring" if ml_detector.trained else "Train model to enable ML scoring"
+    st.markdown(
+        f'<div class="sidebar-panel">'
+        f'<p class="sidebar-panel-title">Model Status</p>'
+        f'<div class="sidebar-status-row">'
+        f'<span class="sidebar-status {status_class}">'
+        f'<span class="sidebar-status-dot"></span>{status_text}'
+        f'</span>'
+        f'</div>'
+        f'<div class="sidebar-rules">{status_hint}<br/>Rules loaded: <strong>{len(rule_engine.rules)}</strong></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown(f"**Rules Loaded:** `{len(rule_engine.rules)}`")
     st.markdown("---")
 
     # Fusion weights
