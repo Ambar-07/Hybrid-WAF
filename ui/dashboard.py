@@ -1307,15 +1307,30 @@ elif page == "Train Model":
         eyebrow="Model Operations",
     )
 
-    train_file = st.file_uploader("Upload Training File (CSV/PCAP)", type=["csv", "pcap", "pcapng"], key="train")
+    source_train = st.radio("Training Data Source", ["Upload File (CSV/PCAP)", "Generated Dataset"], horizontal=True, key="train_source")
+    
+    train_file = None
+    if source_train == "Upload File (CSV/PCAP)":
+        train_file = st.file_uploader("Upload Training File", type=["csv", "pcap", "pcapng"], key="train")
+        
     contamination = st.slider("Contamination (expected anomaly % in training data)", 0.01, 0.20, 0.05, 0.01)
     n_estimators  = st.slider("Number of Trees", 50, 300, 100, 50)
 
-    if train_file and st.button("Train Model", type="primary"):
+    # We evaluate if they uploaded a file OR selected generated
+    ready_to_train = (train_file is not None) or (source_train == "Generated Dataset")
+
+    if ready_to_train and st.button("Train Model", type="primary"):
         with st.spinner("Training..."):
             df_train = None
             
-            if train_file.name.endswith(".csv"):
+            if source_train == "Generated Dataset":
+                generated_path = "capture/generated_traffic.csv"
+                if os.path.exists(generated_path):
+                    df_train = pd.read_csv(generated_path, low_memory=False)
+                else:
+                    st.error("Generated dataset not found. Use the Traffic Generator page first.")
+                    st.stop()
+            elif train_file.name.endswith(".csv"):
                 df_train = pd.read_csv(train_file, low_memory=False)
             else:
                 # Handle PCAP files natively for training
