@@ -18,9 +18,9 @@ from typing import Dict, Iterable, List, Optional
 import pandas as pd
 
 try:
-    from scapy.all import IP, TCP, UDP, sniff  # type: ignore
+    from scapy.all import IP, IPv6, TCP, UDP, sniff  # type: ignore
 except Exception:  # pragma: no cover - optional dependency runtime guard
-    IP = TCP = UDP = sniff = None
+    IP = IPv6 = TCP = UDP = sniff = None
 
 
 PROTOCOL_TO_ID = {"TCP": 6, "UDP": 17, "ICMP": 1}
@@ -39,7 +39,10 @@ def _safe_packet_length(pkt) -> int:
 
 def _extract_packet_row(pkt) -> Optional[Dict[str, object]]:
     """Extract a minimal row from a Scapy packet."""
-    if IP is None or IP not in pkt:
+    has_ipv4 = IP is not None and IP in pkt
+    has_ipv6 = IPv6 is not None and IPv6 in pkt
+    
+    if not (has_ipv4 or has_ipv6):
         return None
 
     src_port = 0
@@ -54,10 +57,13 @@ def _extract_packet_row(pkt) -> Optional[Dict[str, object]]:
         protocol = "UDP"
         src_port = int(pkt[UDP].sport)
         dst_port = int(pkt[UDP].dport)
+        
+    src_ip = str(pkt[IP].src) if has_ipv4 else str(pkt[IPv6].src)
+    dst_ip = str(pkt[IP].dst) if has_ipv4 else str(pkt[IPv6].dst)
 
     return {
-        "src_ip": str(pkt[IP].src),
-        "dst_ip": str(pkt[IP].dst),
+        "src_ip": src_ip,
+        "dst_ip": dst_ip,
         "protocol": protocol,
         "protocol_type": PROTOCOL_TO_ID.get(protocol, 0),
         "src_port": src_port,
