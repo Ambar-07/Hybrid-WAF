@@ -1216,12 +1216,26 @@ elif page == "Analyze Traffic":
             st.warning("Generated dataset not found. Use the Traffic Generator page first.")
 
     if df_raw is not None:
-        max_rows = st.slider("Max rows to analyze", 50, 2000, 300, 50)
+        st.write(f"**Total Flows detected in file:** {len(df_raw)}")
+        
+        # Checkbox to analyze all, else use slider
+        analyze_all = st.checkbox("Analyze ALL packets in file", value=True)
+        
+        if not analyze_all:
+            max_rows = st.slider("Max rows to analyze", 50, 50000, min(500, len(df_raw)), 50)
+        else:
+            max_rows = len(df_raw)
 
-        if st.button("Run Analysis"):
+        if st.button("Run Analysis", type="primary"):
             with st.spinner("Analyzing traffic..."):
-                st.info(f"Loaded {len(df_raw)} rows from {source_name}. Analyzing first {max_rows}...")
-                results_df = analyze_df(df_raw, max_rows=max_rows)
+                if not analyze_all and len(df_raw) > max_rows:
+                    st.info(f"Loaded {len(df_raw)} rows from {source_name}. Analyzing first {max_rows}...")
+                    analyze_target = df_raw.head(max_rows)
+                else:
+                    st.info(f"Loaded {len(df_raw)} rows from {source_name}. Analyzing all {len(df_raw)} flows...")
+                    analyze_target = df_raw
+                    
+                results_df = analyze_df(analyze_target, max_rows=len(analyze_target))
 
             # Summary
             st.markdown("---")
