@@ -1160,17 +1160,52 @@ elif page == "Analyze Traffic":
         eyebrow="Detection Review",
     )
 
-    source = st.radio("Data source", ["Upload CSV", "Generated Dataset"], horizontal=True)
+    source = st.radio("Data source", ["Upload File (CSV/PCAP)", "Generated Dataset"], horizontal=True)
 
     uploaded = None
     df_raw = None
     source_name = ""
 
-    if source == "Upload CSV":
-        uploaded = st.file_uploader("Upload CSV", type=["csv"])
+    if source == "Upload File (CSV/PCAP)":
+        uploaded = st.file_uploader("Upload Network Traffic File", type=["csv", "pcap", "pcapng"])
         if uploaded is not None:
-            df_raw = pd.read_csv(uploaded, low_memory=False)
-            source_name = "uploaded CSV"
+            if uploaded.name.endswith(".csv"):
+                df_raw = pd.read_csv(uploaded, low_memory=False)
+                source_name = "uploaded CSV"
+            else:
+                # Handle PCAP files using Scapy
+                import tempfile
+                from capture.traffic_capture import _extract_packet_row
+                # Optional dependency checking
+                try:
+                    from scapy.all import rdpcap
+                except ImportError:
+                    st.error("Scapy is not installed. Please run `pip install scapy` to analyze PCAP files.")
+                    rdpcap = None
+                
+                if rdpcap:
+                    with st.spinner("Extracting flow data from PCAP file..."):
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pcap") as tmp:
+                            tmp.write(uploaded.getbuffer())
+                            tmp_path = tmp.name
+                            
+                        try:
+                            packets = rdpcap(tmp_path)
+                            rows = []
+                            for pkt in packets:
+                                row = _extract_packet_row(pkt)
+                                if row is not None:
+                                    rows.append(row)
+                            
+                            if len(rows) > 0:
+                                df_raw = pd.DataFrame(rows)
+                                source_name = "uploaded PCAP"
+                            else:
+                                st.warning("PCAP file processed but contained zero valid IP packets to analyze. Make sure your capture was on the right interface or had readable traffic.")
+                        except Exception as e:
+                            st.error(f"Failed to read PCAP: {e}")
+                        finally:
+                            os.remove(tmp_path)
     else:
         generated_path = "capture/generated_traffic.csv"
         if os.path.exists(generated_path):
@@ -1346,7 +1381,8 @@ elif page == "Wireshark PCAP Capture":
     with c2:
         duration = st.number_input("Capture Duration (Seconds)", min_value=5, max_value=60, value=10, step=5)
         
-    interface = st.text_input("Network Interface (leave empty for default adapter)", "")
+    interface = st.text_input("Wireshark Interface Number (Try '1', 'Wi-Fi', 'Ethernet')", "")
+    st.markdown("*Hint: If captures are empty, tshark doesn't know which adapter to use. Open Wireshark and look at the interface names or try '1', '2', '3'.*")
     
     # Locate tshark
     tshark_path = shutil.which("tshark.exe")
