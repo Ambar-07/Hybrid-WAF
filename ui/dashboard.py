@@ -734,9 +734,23 @@ def safe_ml_predict(ff, anomaly_hint: bool = False):
 
 def analyze_df(df: pd.DataFrame, max_rows=300):
     df = df.head(max_rows).copy()
-    processed_df = preprocessor.fit_transform(df)
-    extractor.fit(processed_df)
-    flows = extractor.transform_df(processed_df)
+    
+    # Critical ML Fix: DO NOT re-fit the scaler on test data.
+    if ml_detector.trained:
+        # If the model is trained, we must securely use the existing layout boundaries.
+        try:
+            processed_df = preprocessor.transform(df)
+            flows = extractor.transform_df(processed_df)
+        except Exception:
+            # Fallback if preprocessor was never fitted or memory destroyed
+            processed_df = preprocessor.fit_transform(df)
+            extractor.fit(processed_df)
+            flows = extractor.transform_df(processed_df)
+    else:
+        # If not trained, we can dynamically fit the view
+        processed_df = preprocessor.fit_transform(df)
+        extractor.fit(processed_df)
+        flows = extractor.transform_df(processed_df)
 
     rows = []
     for i, ff in enumerate(flows):
