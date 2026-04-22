@@ -694,6 +694,9 @@ with st.sidebar:
     st.markdown("**Decision Thresholds**")
     fusion.allow_threshold = st.slider("Alert Threshold", 0.1, 0.9, 0.35, 0.05)
     fusion.block_threshold = st.slider("Block Threshold", 0.1, 1.0, 0.70, 0.05)
+    
+    use_priority = st.checkbox("Strict Priority Logic", value=False, help="If true, ANY ML anomaly or Rule hit will instantly Alert/Block, ignoring thresholds.")
+    fusion.use_priority_logic = use_priority
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1274,10 +1277,14 @@ elif page == "Analyze Traffic":
                 hist_data = pd.DataFrame({"Risk Score": results_df["Risk Score"]})
                 st.bar_chart(hist_data["Risk Score"].value_counts(bins=10, sort=False))
 
-            # Table
+            # Table Filters
             st.markdown("### Flow-by-Flow Results")
+            filter_action = st.multiselect("Filter by Action", ["ALLOW", "ALERT", "BLOCK"], default=["ALERT", "BLOCK", "ALLOW"])
+            
+            filtered_df = results_df[results_df["Action"].isin(filter_action)]
+            
             st.dataframe(
-                results_df.drop(columns=["Reasoning"]),
+                filtered_df.drop(columns=["Reasoning"], errors="ignore"),
                 use_container_width=True,
                 height=400,
             )
