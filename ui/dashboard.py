@@ -1359,14 +1359,17 @@ elif page == "Train Model":
                         break
 
                 if label_col:
-                    normal_df = df_train[df_train[label_col].astype(str).str.upper().str.contains("BENIGN")]
+                    normal_df = df_train[df_train[label_col].astype(str).str.upper().str.contains("BENIGN")].copy()
                     st.info(f"Found {len(normal_df)} BENIGN flows out of {len(df_train)} total.")
                 else:
-                    normal_df = df_train
+                    normal_df = df_train.copy()
                     st.info(f"No 'Label' column found. Using all {len(df_train)} rows.")
 
-                extractor.fit(df_train)
-                normal_flows = extractor.transform_df(normal_df)
+                # Must preprocess exactly identically to Analyze Traffic page
+                processed_normal_df = preprocessor.fit_transform(normal_df)
+
+                extractor.fit(processed_normal_df)
+                normal_flows = extractor.transform_df(processed_normal_df)
 
                 ml_detector.contamination = contamination
                 ml_detector.n_estimators  = n_estimators
