@@ -1307,15 +1307,51 @@ elif page == "Train Model":
         eyebrow="Model Operations",
     )
 
-    train_file = st.file_uploader("Upload Training CSV", type=["csv"], key="train")
+    train_file = st.file_uploader("Upload Training File (CSV/PCAP)", type=["csv", "pcap", "pcapng"], key="train")
     contamination = st.slider("Contamination (expected anomaly % in training data)", 0.01, 0.20, 0.05, 0.01)
     n_estimators  = st.slider("Number of Trees", 50, 300, 100, 50)
 
-    if train_file and st.button("Train Model"):
+    if train_file and st.button("Train Model", type="primary"):
         with st.spinner("Training..."):
-            df_train = pd.read_csv(train_file, low_memory=False)
-
-            # Filter to benign
+            df_train = None
+            
+            if train_file.name.endswith(".csv"):
+                df_train = pd.read_csv(train_file, low_memory=False)
+            else:
+                # Handle PCAP files natively for training
+                import tempfile
+                from capture.traffic_capture import _extract_packet_row
+                try:
+                    from scapy.all import rdpcap
+                except ImportError:
+                    st.error("Scapy is not installed. PCAP parsing requires Scapy.")
+                    st.stop()
+                    
+                with st.spinner("Extracting packets from PCAP to train model..."):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pcap") as tmp:
+                        tmp.write(train_file.getbuffer())
+                        tmp_path = tmp.name
+                    try:
+                        packets = rdpcap(tmp_path)
+                        rows = []
+                        for pkt in packets:
+                            row = _extract_packet_row(pkt)
+                            if row is not None:
+                                rows.append(row)
+                        
+                        if len(rows) > 0:
+                            df_train = pd.DataFrame(rows)
+                        else:
+                            st.error("PCAP contained 0 valid packets. Cannot train.")
+                            st.stop()
+                    except Exception as e:
+                        st.error(f"Failed parsing PCAP: {e}")
+                        st.stop()
+                    finally:
+                        os.remove(tmp_path)
+            
+            if df_train is not None:
+                # Filter to benign
             label_col = None
             for col in df_train.columns:
                 if col.strip().lower() == "label":
