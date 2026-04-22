@@ -660,7 +660,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigation",
-        ["Dashboard", "Traffic Generator", "Analyze Traffic", "Train Model", "Rules Viewer"],
+        ["Dashboard", "Traffic Generator", "Analyze Traffic", "Train Model", "Rules Viewer", "Wireshark PCAP Capture"],
         label_visibility="collapsed"
     )
 
@@ -1326,3 +1326,85 @@ elif page == "Rules Viewer":
                 st.markdown("**Conditions (ALL must be true):**")
                 for cond in rule.get("conditions", []):
                     st.code(f"{cond['field']}  {cond['op']}  {cond['value']}")
+
+# ── Wireshark PCAP Capture ──────────────────────────────────────────────────
+elif page == "Wireshark PCAP Capture":
+    import subprocess
+    import threading
+    import requests
+    import shutil
+    
+    render_page_header(
+        "Wireshark PCAP Capture",
+        "Generate traffic to a target URL while Wireshark silently tracks it in the background, outputting a raw PCAP file for analysis.",
+        eyebrow="Live Sniffer",
+    )
+    
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        target_url = st.text_input("Target URL to generate traffic specifically to", "http://www.google.com")
+    with c2:
+        duration = st.number_input("Capture Duration (Seconds)", min_value=5, max_value=60, value=10, step=5)
+        
+    interface = st.text_input("Network Interface (leave empty for default adapter)", "")
+    
+    # Locate tshark
+    tshark_path = shutil.which("tshark.exe")
+    if not tshark_path:
+        # fallback Windows check
+        if os.path.exists(r"C:\Program Files\Wireshark\tshark.exe"):
+            tshark_path = r"C:\Program Files\Wireshark\tshark.exe"
+            
+    if not tshark_path:
+        st.error("❌ **tshark.exe not found.** Wireshark must be installed and added to your system PATH to use this feature.")
+    else:
+        if st.button("Start Wireshark Capture", type="primary"):
+            pcap_file = "capture_output.pcapng"
+            
+            # Remove old file if exists
+            if os.path.exists(pcap_file):
+                os.remove(pcap_file)
+                
+            cmd = [tshark_path, "-a", f"duration:{duration}", "-w", pcap_file, "-Q"]
+            if interface:
+                cmd.extend(["-i", interface])
+                
+            st.info(f"🚀 Started {duration}-second capture. Generating traffic on {target_url}...")
+            
+            with st.spinner(f"Wireshark is listening... ({duration} seconds)"):
+                
+                # Function to generate background traffic
+                def ping_target():
+                    for _ in range(duration):
+                        try:
+                            # Use timeout to not permanently hang, send request
+                            requests.get(target_url, timeout=2.0)
+                        except Exception:
+                            pass
+                        time.sleep(1)
+                
+                # Start network spawner threaded so it doesn't block tshark subprocess
+                traffic_thread = threading.Thread(target=ping_target)
+                traffic_thread.start()
+                
+                try:
+                    # Run tshark blocking (it self-terminates after defined duration)
+                    subprocess.run(cmd, check=True)
+                except subprocess.CalledProcessError as e:
+                    st.error(f"Capturing failed: {e}")
+                
+            traffic_thread.join(timeout=1.0)
+            
+            if os.path.exists(pcap_file) and os.path.getsize(pcap_file) > 100:
+                st.success(f"✅ Capture Complete! Generated {os.path.getsize(pcap_file)} bytes.")
+                with open(pcap_file, "rb") as f:
+                    file_bytes = f.read()
+                
+                st.download_button(
+                    label="📥 Download .pcapng file (Open with Wireshark)",
+                    data=file_bytes,
+                    file_name=f"Traffic_Capture_{int(time.time())}.pcapng",
+                    mime="application/vnd.tcpdump.pcap"
+                )
+            else:
+                st.warning("⚠️ Capture finished, but the PCAP file seems empty or missing. Check your 'Network Interface' settings or run Streamlit as Administrator.")
