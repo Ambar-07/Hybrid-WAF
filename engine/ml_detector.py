@@ -77,13 +77,13 @@ class MLDetector:
         X = ff.normalized.reshape(1, -1)
         X = self._align_feature_count(X)
         try:
-            raw_score = float(self.model.score_samples(X)[0])
+            raw_score = float(self.model.decision_function(X)[0])
         except ValueError as exc:
             # Recover if model metadata changed and sklearn still reports mismatch.
             self.feature_count = int(getattr(self.model, "n_features_in_", X.shape[1]))
             X = self._align_feature_count(ff.normalized.reshape(1, -1))
             try:
-                raw_score = float(self.model.score_samples(X)[0])
+                raw_score = float(self.model.decision_function(X)[0])
             except ValueError:
                 raise ValueError(
                     "Feature mismatch between extractor and model persists. "
@@ -109,12 +109,12 @@ class MLDetector:
         X = np.array([f.normalized for f in flows])
         X = self._align_feature_count(X)
         try:
-            raw_scores = self.model.score_samples(X)
+            raw_scores = self.model.decision_function(X)
         except ValueError as exc:
             self.feature_count = int(getattr(self.model, "n_features_in_", X.shape[1]))
             X = self._align_feature_count(np.array([f.normalized for f in flows]))
             try:
-                raw_scores = self.model.score_samples(X)
+                raw_scores = self.model.decision_function(X)
             except ValueError:
                 raise ValueError(
                     "Feature mismatch between extractor and model persists. "
@@ -157,11 +157,13 @@ class MLDetector:
 
     # ── Helpers ───────────────────────────────────────────────────────────────
     def _scale_score(self, raw: float) -> float:
-        """Map raw IF score to [0,1] where 1=anomaly."""
-        # IF scores roughly range from -0.6 to +0.1
-        normalized = (raw + 0.6) / 0.7          # shift to ~[0, 1]
-        normalized = float(np.clip(normalized, 0, 1))
-        return round(1.0 - normalized, 4)        # invert: high = anomaly
+        """Map raw IF decision function to [0,1] where >0.5=anomaly."""
+        # decision_function: < 0 is anomaly, > 0 is normal. 0.0 is the exact boundary.
+        # We want anomaly_score: 1.0 = anomaly, 0.0 = normal.
+        # A sigmoid function perfectly anchors this: 1 / (1 + exp(raw * scale))
+        # Multiply raw by ~10 to steepen the curve.
+        sigmoid = 1.0 / (1.0 + np.exp(raw * 10.0))
+        return round(float(sigmoid), 4)
 
     def _check_trained(self):
         if not self.trained or self.model is None:
