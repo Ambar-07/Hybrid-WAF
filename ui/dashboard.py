@@ -1352,28 +1352,28 @@ elif page == "Train Model":
             
             if df_train is not None:
                 # Filter to benign
-            label_col = None
-            for col in df_train.columns:
-                if col.strip().lower() == "label":
-                    label_col = col
-                    break
+                label_col = None
+                for col in df_train.columns:
+                    if col.strip().lower() == "label":
+                        label_col = col
+                        break
 
-            if label_col:
-                normal_df = df_train[df_train[label_col].str.upper().str.contains("BENIGN")]
-                st.info(f"Found {len(normal_df)} BENIGN flows out of {len(df_train)} total.")
-            else:
-                normal_df = df_train
-                st.info(f"No 'Label' column found. Using all {len(df_train)} rows.")
+                if label_col:
+                    normal_df = df_train[df_train[label_col].astype(str).str.upper().str.contains("BENIGN")]
+                    st.info(f"Found {len(normal_df)} BENIGN flows out of {len(df_train)} total.")
+                else:
+                    normal_df = df_train
+                    st.info(f"No 'Label' column found. Using all {len(df_train)} rows.")
 
-            extractor.fit(df_train)
-            normal_flows = extractor.transform_df(normal_df)
+                extractor.fit(df_train)
+                normal_flows = extractor.transform_df(normal_df)
 
-            ml_detector.contamination = contamination
-            ml_detector.n_estimators  = n_estimators
-            ml_detector.train(normal_flows)
-            ml_detector.save("models/isolation_forest.pkl")
+                ml_detector.contamination = contamination
+                ml_detector.n_estimators  = n_estimators
+                ml_detector.train(normal_flows)
+                ml_detector.save("models/isolation_forest.pkl")
 
-        st.success(f"Model trained on {len(normal_flows)} flows and saved.")
+                st.success(f"Model trained on {len(normal_flows)} flows and saved.")
 
 
 # ── Rules Viewer ──────────────────────────────────────────────────────────────
