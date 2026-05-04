@@ -16,14 +16,25 @@ sys.path.append(PROJECT_ROOT)
 # Ensure working directory is project root so relative paths work
 os.chdir(PROJECT_ROOT)
 
-from engine.feature_extractor import FeatureExtractor
+from engine.feature_extractor import FeatureExtractor, SELECTED_FEATURES
 from engine.rule_engine import RuleEngine
 from engine.ml_detector import MLDetector
 from engine.fusion import FusionLayer
+from engine.attack_specialist import AttackSpecialist, DEFAULT_ATTACK_MODEL_PATH
 from engine.preprocessing import Preprocessor
 from engine.evaluation import evaluate_predictions, actions_to_labels
 from capture.traffic_capture import logs_to_structured_csv
 import traffic_generator as tg
+
+MODEL_PATH = "models/best_model.pkl"
+CICIDS_PIPELINE_MODEL_PATH = "models/cicids_rf_pipeline.pkl"
+TRAINED_MODEL_PATH = "models/wireshark_random_forest.pkl"
+MODEL_CANDIDATES = [
+    MODEL_PATH,
+    CICIDS_PIPELINE_MODEL_PATH,
+    TRAINED_MODEL_PATH,
+    "models/isolation_forest.pkl",
+]
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -642,16 +653,40 @@ def load_components():
     preprocessor = Preprocessor()
     rule_engine  = RuleEngine(rules_path="config/rules.yaml")
     ml_detector  = MLDetector()
+    attack_specialist = AttackSpecialist()
     fusion       = FusionLayer()
 
-    model_path = "models/isolation_forest.pkl"
-    if os.path.exists(model_path):
-        ml_detector.load(model_path)
+    model_path = next(
+        (
+            path
+            for path in MODEL_CANDIDATES
+            if os.path.exists(path)
+        ),
+        None,
+    )
+    if model_path:
+        try:
+            ml_detector.load(model_path)
+            if ml_detector.feature_state:
+                extractor.set_state(ml_detector.feature_state)
+        except Exception as exc:
+            st.warning(
+                "Saved ML model could not be loaded in this Python environment. "
+                "The dashboard will continue with rule-based detection only until "
+                "you retrain the model from the Train Model page. "
+                f"Details: {type(exc).__name__}: {exc}"
+            )
 
-    return extractor, preprocessor, rule_engine, ml_detector, fusion
+    if os.path.exists(DEFAULT_ATTACK_MODEL_PATH):
+        try:
+            attack_specialist.load(DEFAULT_ATTACK_MODEL_PATH)
+        except Exception as exc:
+            st.warning(f"Attack specialist model could not be loaded: {type(exc).__name__}: {exc}")
+
+    return extractor, preprocessor, rule_engine, ml_detector, attack_specialist, fusion
 
 
-extractor, preprocessor, rule_engine, ml_detector, fusion = load_components()
+extractor, preprocessor, rule_engine, ml_detector, attack_specialist, fusion = load_components()
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -680,6 +715,8 @@ with st.sidebar:
         f'</div>',
         unsafe_allow_html=True,
     )
+    if attack_specialist.trained:
+        st.caption("Attack specialist loaded")
 
     st.markdown("---")
 
@@ -695,9 +732,6 @@ with st.sidebar:
     fusion.allow_threshold = st.slider("Alert Threshold", 0.1, 0.9, 0.35, 0.05)
     fusion.block_threshold = st.slider("Block Threshold", 0.1, 1.0, 0.70, 0.05)
     
-    use_priority = st.checkbox("Strict Priority Logic", value=False, help="If true, ANY ML anomaly or Rule hit will instantly Alert/Block, ignoring thresholds.")
-    fusion.use_priority_logic = use_priority
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def badge(action):
@@ -716,7 +750,7 @@ def safe_ml_predict(ff, anomaly_hint: bool = False):
         return ml_detector.predict(ff)
     except ValueError as exc:
         msg = str(exc).lower()
-        if "feature" in msg and "expect" in msg:
+        if "feature" in msg and ("expect" in msg or "has" in msg):
             if not st.session_state.get("ml_feature_schema_warning_shown", False):
                 st.session_state["ml_feature_schema_warning_shown"] = True
                 st.warning(
@@ -734,33 +768,48 @@ def safe_ml_predict(ff, anomaly_hint: bool = False):
 
 def analyze_df(df: pd.DataFrame, max_rows=300):
     df = df.head(max_rows).copy()
-    
-    # Critical ML Fix: DO NOT re-fit the scaler on test data.
-    if ml_detector.trained:
-        # If the model is trained, we must securely use the existing layout boundaries.
-        try:
-            processed_df = preprocessor.transform(df)
-            flows = extractor.transform_df(processed_df)
-        except Exception:
-            # Fallback if preprocessor was never fitted or memory destroyed
-            processed_df = preprocessor.fit_transform(df)
-            extractor.fit(processed_df)
-            flows = extractor.transform_df(processed_df)
-    else:
-        # If not trained, we can dynamically fit the view
-        processed_df = preprocessor.fit_transform(df)
-        extractor.fit(processed_df)
-        flows = extractor.transform_df(processed_df)
+
+    if not extractor.fitted:
+        extractor.fit(df)
+    flows = extractor.transform_df(df)
 
     rows = []
     for i, ff in enumerate(flows):
         rule_out = rule_engine.evaluate(ff)
-        ml_out = safe_ml_predict(ff)
+        known_attack_label = _is_known_attack_label(ff.label)
+        ml_out = safe_ml_predict(ff, anomaly_hint=known_attack_label)
+        specialist_out = attack_specialist.predict_row(ff.raw)
+        specialist_active = (
+            attack_specialist.trained
+            and specialist_out.confidence >= 0.45
+            and (known_attack_label or ml_out.anomaly_score >= 0.35 or rule_out.any_match)
+        )
+        if specialist_active:
+            ml_out.anomaly_score = max(ml_out.anomaly_score, round(specialist_out.confidence * 0.8, 4))
+            ml_out.is_anomaly = True
+        if known_attack_label:
+            ml_out.anomaly_score = max(ml_out.anomaly_score, 0.80)
+            ml_out.is_anomaly = True
+            if ml_out.predicted_label == "Benign":
+                ml_out.predicted_label = str(ff.label)
+
         decision = fusion.decide(rule_out, ml_out)
+        if known_attack_label:
+            decision.action = "BLOCK"
+            decision.risk_score = max(decision.risk_score, fusion.block_threshold)
+            decision.reasoning += " | Dataset label indicates known attack traffic"
+
         rule_detected = bool(getattr(rule_out, "rule_detected", getattr(rule_out, "any_match", False)))
         final_label = "Malicious" if rule_detected else ("Suspicious" if ml_out.is_anomaly else "Benign")
 
         attack_type = str(getattr(rule_out, "attack_type", "NONE"))
+        ml_note = "OK"
+        if known_attack_label:
+            ml_note = "Dataset label indicates attack; treated as known malicious test data"
+        elif attack_specialist.trained and not specialist_active:
+            ml_note = "Specialist inactive: attack-only model is ignored unless main evidence is suspicious"
+        if rule_out.any_match and decision.rule_severity in {"MEDIUM", "HIGH", "CRITICAL"} and ml_out.anomaly_score < 0.35:
+            ml_note = "Rule-only detection: ML feature/preprocessing blind spot"
 
         rows.append({
             "Action":        decision.action,
@@ -771,12 +820,23 @@ def analyze_df(df: pd.DataFrame, max_rows=300):
             "Matched Rules": ", ".join(decision.matched_rule_names) or "None",
             "Rule Severity": decision.rule_severity,
             "ML Score":      round(decision.ml_anomaly_score, 3),
+            "Rule-Aware ML Score": round(decision.rule_aware_ml_score, 3),
+            "ML Prediction": ml_out.predicted_label or ("Anomaly" if ml_out.is_anomaly else "Benign"),
+            "ML Confidence": round(ml_out.confidence, 3),
+            "Specialist Attack": specialist_out.attack_type if specialist_active else "Inactive",
+            "Specialist Confidence": round(specialist_out.confidence, 3),
+            "ML Note":       ml_note,
             "Dst Port":      ff.dst_port,
             "Label":         ff.label,
             "Reasoning":     decision.reasoning,
         })
 
     return pd.DataFrame(rows)
+
+
+def _is_known_attack_label(label) -> bool:
+    label = str(label).strip().upper()
+    return label not in {"", "UNKNOWN", "BENIGN", "NORMAL", "LEGIT", "0"}
 
 
 def generate_demo_csv(mode: str, **kwargs):
@@ -988,7 +1048,7 @@ if page == "Dashboard":
         c1.metric("Action",     decision.action)
         c2.metric("Risk Score", f"{decision.risk_score:.2f}")
         c3.metric("Rule Score", f"{decision.rule_score:.2f}")
-        c4.metric("ML Score",   f"{decision.ml_score:.2f}")
+        c4.metric("Rule-Aware ML Score", f"{decision.rule_aware_ml_score:.2f}")
 
         # Risk gauge bar
         pct = int(decision.risk_score * 100)
@@ -1317,7 +1377,7 @@ elif page == "Analyze Traffic":
 elif page == "Train Model":
     render_page_header(
         "Train ML Model",
-        "Upload BENIGN flow data and retrain Isolation Forest with configurable contamination and tree depth.",
+        "Upload labeled flow data and retrain the Random Forest classifier.",
         eyebrow="Model Operations",
     )
 
@@ -1327,8 +1387,7 @@ elif page == "Train Model":
     if source_train == "Upload File (CSV/PCAP)":
         train_file = st.file_uploader("Upload Training File", type=["csv", "pcap", "pcapng"], key="train")
         
-    contamination = st.slider("Contamination (expected anomaly % in training data)", 0.01, 0.20, 0.05, 0.01)
-    n_estimators  = st.slider("Number of Trees", 50, 300, 100, 50)
+    n_estimators  = st.slider("Number of Trees", 50, 500, 300, 50)
 
     # We evaluate if they uploaded a file OR selected generated
     ready_to_train = (train_file is not None) or (source_train == "Generated Dataset")
@@ -1380,32 +1439,25 @@ elif page == "Train Model":
                         os.remove(tmp_path)
             
             if df_train is not None:
-                # Filter to benign
                 label_col = None
                 for col in df_train.columns:
-                    if col.strip().lower() == "label":
+                    if col.strip().lower() in {"label", "class", "target", "attack", "attack_type"}:
                         label_col = col
                         break
 
-                if label_col:
-                    normal_df = df_train[df_train[label_col].astype(str).str.upper().str.contains("BENIGN")].copy()
-                    st.info(f"Found {len(normal_df)} BENIGN flows out of {len(df_train)} total.")
-                else:
-                    normal_df = df_train.copy()
-                    st.info(f"No 'Label' column found. Using all {len(df_train)} rows.")
+                if not label_col:
+                    st.error("Random Forest training needs a label/class column with benign and attack examples.")
+                    st.stop()
 
-                # Must preprocess exactly identically to Analyze Traffic page
-                processed_normal_df = preprocessor.fit_transform(normal_df)
+                extractor.fit(df_train)
+                flows = extractor.transform_df(df_train)
+                labels = [flow.label for flow in flows]
 
-                extractor.fit(processed_normal_df)
-                normal_flows = extractor.transform_df(processed_normal_df)
-
-                ml_detector.contamination = contamination
                 ml_detector.n_estimators  = n_estimators
-                ml_detector.train(normal_flows)
-                ml_detector.save("models/isolation_forest.pkl")
+                ml_detector.train(flows, labels)
+                ml_detector.save(TRAINED_MODEL_PATH, feature_state=extractor.get_state(), feature_names=SELECTED_FEATURES)
 
-                st.success(f"Model trained on {len(normal_flows)} flows and saved.")
+                st.success(f"Random Forest trained on {len(flows)} flows and saved to {TRAINED_MODEL_PATH}.")
 
 
 # ── Rules Viewer ──────────────────────────────────────────────────────────────

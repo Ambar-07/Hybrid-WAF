@@ -31,14 +31,16 @@ python main.py --analyze data/test.csv --rows 500
 ```
 hybrid-ids/
 ├── engine/
-│   ├── feature_extractor.py   # Extracts + normalizes 19 features
+│   ├── feature_extractor.py   # Extracts + normalizes selected CICIDS features
 │   ├── rule_engine.py         # YAML-based signature rules
-│   ├── ml_detector.py         # Isolation Forest anomaly detection
+│   ├── ml_detector.py         # Random Forest / legacy anomaly detection
 │   └── fusion.py              # Weighted risk score + decision
 ├── config/
 │   └── rules.yaml             # All signature rules (edit here!)
 ├── models/
-│   └── isolation_forest.pkl   # Saved after training
+│   ├── best_model.pkl         # Primary Random Forest model
+│   ├── cicids_rf_pipeline.pkl # Fallback transferred model
+│   └── attack_specialist.pkl  # Secondary attack-family specialist
 ├── ui/
 │   └── dashboard.py           # Streamlit UI
 ├── main.py                    # CLI entry point

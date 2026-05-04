@@ -17,63 +17,69 @@ from engine.feature_extractor import FeatureExtractor
 from engine.rule_engine import RuleEngine
 from engine.ml_detector import MLDetector
 from engine.fusion import FusionLayer, FusionDecision
-from engine.preprocessing import Preprocessor
-from engine.evaluation import evaluate_predictions, actions_to_labels
 
-MODEL_PATH = "models/isolation_forest.pkl"
+MODEL_PATH = "models/best_model.pkl"
+CICIDS_PIPELINE_MODEL_PATH = "models/cicids_rf_pipeline.pkl"
+TRAINED_MODEL_PATH = "models/wireshark_random_forest.pkl"
 RULES_PATH = "config/rules.yaml"
+MODEL_CANDIDATES = [
+    MODEL_PATH,
+    CICIDS_PIPELINE_MODEL_PATH,
+    TRAINED_MODEL_PATH,
+    "models/isolation_forest.pkl",
+]
 
 
 class HybridIDS:
     def __init__(self):
         self.extractor = FeatureExtractor()
-        self.preprocessor = Preprocessor()
         self.rule_engine = RuleEngine(rules_path=RULES_PATH)
         self.ml_detector = MLDetector()
         self.fusion = FusionLayer()
 
-    # ── Train on normal traffic ───────────────────────────────────────────────
+    # ── Train on labeled traffic ──────────────────────────────────────────────
     def train(self, csv_path: str):
         print(f"\n[IDS] Loading training data from: {csv_path}")
         df = pd.read_csv(csv_path, low_memory=False)
-        df = self.preprocessor.fit_transform(df)
         print(f"[IDS] Total rows: {len(df)}")
 
-        # Keep only BENIGN flows for training the ML model
         label_col = self._find_label_col(df)
-        if label_col:
-            normal_df = df[df[label_col].str.upper().str.contains("BENIGN")]
-            print(f"[IDS] Normal flows for ML training: {len(normal_df)}")
-        else:
-            normal_df = df
-            print("[IDS] No label column found — using all rows for training")
+        if not label_col:
+            raise ValueError("Random Forest training requires a label/class column.")
 
-        # Fit feature extractor on ALL data (for normalization stats)
         self.extractor.fit(df)
+        flows = self.extractor.transform_df(df)
+        labels = [flow.label for flow in flows]
 
-        # Transform normal flows for ML
-        normal_flows = self.extractor.transform_df(normal_df)
-
-        # Train ML model
-        self.ml_detector.train(normal_flows)
-        self.ml_detector.save(MODEL_PATH)
-        print(f"\n[IDS] ✅ Model saved to {MODEL_PATH}")
+        self.ml_detector.train(flows, labels)
+        self.ml_detector.save(TRAINED_MODEL_PATH, feature_state=self.extractor.get_state())
+        print(f"\n[IDS] ✅ Random Forest model saved to {TRAINED_MODEL_PATH}")
 
     # ── Analyze traffic ───────────────────────────────────────────────────────
     def analyze(self, csv_path: str, max_rows: int = 500) -> list:
         print(f"\n[IDS] Analyzing: {csv_path}")
         df = pd.read_csv(csv_path, low_memory=False).head(max_rows)
-        df = self.preprocessor.fit_transform(df)
         print(f"[IDS] Analyzing {len(df)} flows...")
 
         if not self.ml_detector.trained:
-            if os.path.exists(MODEL_PATH):
-                self.ml_detector.load(MODEL_PATH)
+            model_path = next(
+                (
+                    path
+                    for path in MODEL_CANDIDATES
+                    if os.path.exists(path)
+                ),
+                None,
+            )
+            if model_path:
+                self.ml_detector.load(model_path)
+                if self.ml_detector.feature_state:
+                    self.extractor.set_state(self.ml_detector.feature_state)
             else:
                 print("[IDS] ⚠️  No trained model found. Run --train first.")
                 sys.exit(1)
 
-        self.extractor.fit(df)  # fit on current batch for normalization
+        if not self.extractor.fitted:
+            self.extractor.fit(df)  # fallback for legacy models without saved feature stats
         flows = self.extractor.transform_df(df)
 
         results = []
@@ -83,7 +89,6 @@ class HybridIDS:
             rule_out = self.rule_engine.evaluate(ff)
             ml_out   = self.ml_detector.predict(ff)
             decision = self.fusion.decide(rule_out, ml_out)
-            predicted_label = actions_to_labels([decision.action])[0]
 
             results.append({
                 "flow_idx":      i,
@@ -93,11 +98,13 @@ class HybridIDS:
                 "dst_port":      ff.dst_port,
                 "label":         ff.label,
                 "action":        decision.action,
-                "predicted_label": predicted_label,
                 "risk_score":    decision.risk_score,
                 "rule_matched":  decision.rule_matched,
                 "matched_rules": ", ".join(decision.matched_rule_names),
                 "ml_score":      decision.ml_anomaly_score,
+                "rule_aware_ml_score": decision.rule_aware_ml_score,
+                "ml_prediction": ml_out.predicted_label or ("Anomaly" if ml_out.is_anomaly else "Benign"),
+                "ml_confidence": ml_out.confidence,
                 "reasoning":     decision.reasoning,
             })
 
@@ -110,20 +117,11 @@ class HybridIDS:
         print(f"  ⚠️  ALERT : {alert_count}")
         print(f"  ✅ ALLOW : {allow_count}")
 
-        label_col = self._find_label_col(df)
-        if label_col:
-            metrics = evaluate_predictions(df[label_col].tolist(), [r["predicted_label"] for r in results])
-            print("\n[IDS] Evaluation Metrics (vs ground truth):")
-            print(f"  Accuracy : {metrics['accuracy']:.4f}")
-            print(f"  Precision: {metrics['precision']:.4f}")
-            print(f"  Recall   : {metrics['recall']:.4f}")
-            print(f"  F1 Score : {metrics['f1_score']:.4f}")
-
         return results
 
     def _find_label_col(self, df: pd.DataFrame):
         for col in df.columns:
-            if col.strip().lower() == "label":
+            if col.strip().lower() in {"label", "class", "target", "attack", "attack_type"}:
                 return col
         return None
 

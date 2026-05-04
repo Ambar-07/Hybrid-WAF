@@ -29,6 +29,7 @@ class FusionDecision:
     # Component scores
     rule_score: float       # contribution from rules
     ml_score: float         # contribution from ML
+    rule_aware_ml_score: float
 
     # Explainability
     rule_matched: bool
@@ -63,14 +64,12 @@ class FusionLayer:
         ml_weight:   float = 0.45,
         allow_threshold: float = 0.35,
         block_threshold: float = 0.70,
-        use_priority_logic: bool = True,
     ):
         assert abs(rule_weight + ml_weight - 1.0) < 1e-6, "Weights must sum to 1.0"
         self.rule_weight     = rule_weight
         self.ml_weight       = ml_weight
         self.allow_threshold = allow_threshold
         self.block_threshold = block_threshold
-        self.use_priority_logic = use_priority_logic
 
     def decide(
         self,
@@ -81,12 +80,16 @@ class FusionLayer:
         # ── Rule score ────────────────────────────────────────────────────────
         rule_score = 0.0
         if rule_output.any_match:
-            # Combine highest severity weight + max confidence
-            sev_weight = SEVERITY_WEIGHT.get(rule_output.highest_severity, 0)
-            rule_score = sev_weight * rule_output.max_confidence
+            # Score the strongest matched rule. A high-confidence LOW rule should
+            # not inflate a lower-confidence CRITICAL rule, so evaluate per rule.
+            rule_score = max(
+                SEVERITY_WEIGHT.get(rule.severity, 0) * rule.confidence
+                for rule in rule_output.matched_rules
+            )
 
         # ── ML score ──────────────────────────────────────────────────────────
-        ml_score = ml_result.anomaly_score  # already 0..1
+        raw_ml_score = ml_result.anomaly_score  # pure model score, already 0..1
+        ml_score = self._rule_aware_ml_score(raw_ml_score, rule_output)
 
         # ── Weighted fusion ───────────────────────────────────────────────────
         risk_score = round(
@@ -100,29 +103,30 @@ class FusionLayer:
             boost = min(0.15, (1.0 - risk_score) * 0.3)
             risk_score = round(risk_score + boost, 4)
 
+        # Signature rules are deterministic evidence. Do not let a low ML score
+        # dilute medium/high/critical rule hits into ALLOW.
+        risk_score = max(
+            risk_score,
+            self._rule_risk_floor(rule_output),
+        )
+        risk_score = round(float(min(risk_score, 1.0)), 4)
+
         # ── Decision ──────────────────────────────────────────────────────────
-        if self.use_priority_logic:
-            if rule_output.any_match:
-                action = "BLOCK"
-                risk_score = max(risk_score, 0.80)
-            elif ml_result.is_anomaly:
-                action = "ALERT"
-                risk_score = max(risk_score, 0.50)
-            else:
-                action = "ALLOW"
-                risk_score = min(risk_score, 0.34)
+        if risk_score >= self.block_threshold:
+            action = "BLOCK"
+        elif risk_score >= self.allow_threshold:
+            action = "ALERT"
         else:
-            if risk_score >= self.block_threshold:
-                action = "BLOCK"
-            elif risk_score >= self.allow_threshold:
-                action = "ALERT"
-            else:
-                action = "ALLOW"
+            action = "ALLOW"
+
+        # Rule policy override: ML can reduce uncertainty, but it must not
+        # downgrade deterministic medium-or-higher signatures to ALLOW.
+        action = self._apply_rule_action_floor(action, rule_output)
 
         # ── Reasoning ─────────────────────────────────────────────────────────
         matched_names = [r.rule_name for r in rule_output.matched_rules]
         reasoning = self._build_reasoning(
-            action, risk_score, rule_output, ml_result, matched_names
+            action, risk_score, rule_output, ml_result, matched_names, ml_score
         )
 
         return FusionDecision(
@@ -130,12 +134,49 @@ class FusionLayer:
             risk_score=risk_score,
             rule_score=round(rule_score, 4),
             ml_score=round(ml_score, 4),
+            rule_aware_ml_score=round(ml_score, 4),
             rule_matched=rule_output.any_match,
             matched_rule_names=matched_names,
             rule_severity=rule_output.highest_severity,
-            ml_anomaly_score=ml_result.anomaly_score,
+            ml_anomaly_score=raw_ml_score,
             reasoning=reasoning,
         )
+
+    def _rule_aware_ml_score(self, raw_ml_score: float, rule_output: RuleEngineOutput) -> float:
+        if not rule_output.any_match:
+            return raw_ml_score
+
+        floors = {
+            "LOW": 0.0,
+            "MEDIUM": 0.45,
+            "HIGH": 0.65,
+            "CRITICAL": 0.85,
+        }
+        return max(raw_ml_score, floors.get(rule_output.highest_severity, 0.0))
+
+    def _rule_risk_floor(self, rule_output: RuleEngineOutput) -> float:
+        if not rule_output.any_match:
+            return 0.0
+
+        floors = {
+            "LOW": 0.0,
+            "MEDIUM": self.allow_threshold,
+            "HIGH": max(self.allow_threshold, 0.55),
+            "CRITICAL": self.block_threshold,
+        }
+        return floors.get(rule_output.highest_severity, 0.0)
+
+    def _apply_rule_action_floor(self, action: str, rule_output: RuleEngineOutput) -> str:
+        if not rule_output.any_match:
+            return action
+
+        if rule_output.highest_severity == "CRITICAL":
+            return "BLOCK"
+
+        if rule_output.highest_severity in {"MEDIUM", "HIGH"} and action == "ALLOW":
+            return "ALERT"
+
+        return action
 
     def _build_reasoning(
         self,
@@ -144,6 +185,7 @@ class FusionLayer:
         rule_output: RuleEngineOutput,
         ml_result: MLResult,
         matched_names: List[str],
+        rule_aware_ml_score: float,
     ) -> str:
         parts = []
 
@@ -158,14 +200,27 @@ class FusionLayer:
 
         if ml_result.is_anomaly:
             parts.append(
-                f"ML model flagged as anomalous "
-                f"(anomaly score: {ml_result.anomaly_score:.2f})"
+                f"ML model predicted {ml_result.predicted_label or 'anomalous traffic'} "
+                f"(attack score: {ml_result.anomaly_score:.2f}, confidence: {ml_result.confidence:.2f})"
             )
         else:
             parts.append(
-                f"ML model considers traffic normal "
-                f"(anomaly score: {ml_result.anomaly_score:.2f})"
+                f"ML model predicted {ml_result.predicted_label or 'Benign'} "
+                f"(attack score: {ml_result.anomaly_score:.2f}, confidence: {ml_result.confidence:.2f})"
             )
+
+        if (
+            rule_output.any_match
+            and rule_output.highest_severity in {"MEDIUM", "HIGH", "CRITICAL"}
+            and ml_result.anomaly_score < 0.35
+        ):
+            parts.append(
+                "Rule-only detection: ML score is low because the classifier did not see enough attack evidence "
+                "in its selected features/preprocessing"
+            )
+
+        if rule_aware_ml_score > ml_result.anomaly_score:
+            parts.append(f"Rule-aware ML score raised to {rule_aware_ml_score:.2f}")
 
         parts.append(f"Final risk score: {risk_score:.2f} → Action: {action}")
         return " | ".join(parts)

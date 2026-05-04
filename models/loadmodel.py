@@ -1,7 +1,7 @@
 """
 Load Model Utility
 -------------------
-Loads the trained Isolation Forest model for the Hybrid IDS.
+Loads the trained ML detector model for the Hybrid IDS.
 This module can be imported by other scripts or run standalone to verify
 that a trained model exists and is loadable.
 
@@ -20,29 +20,34 @@ if PROJECT_ROOT not in sys.path:
 
 from engine.ml_detector import MLDetector
 
-MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "isolation_forest.pkl")
+MODEL_CANDIDATES = [
+    os.path.join(PROJECT_ROOT, "models", "best_model.pkl"),
+    os.path.join(PROJECT_ROOT, "models", "cicids_rf_pipeline.pkl"),
+    os.path.join(PROJECT_ROOT, "models", "wireshark_random_forest.pkl"),
+    os.path.join(PROJECT_ROOT, "models", "isolation_forest.pkl"),
+]
 
 
 def load_ids_model(model_path: str = None) -> MLDetector:
     """
-    Load a trained Isolation Forest MLDetector.
+    Load a trained MLDetector.
 
     Parameters
     ----------
     model_path : str, optional
         Path to the saved .pkl model file.
-        Defaults to  models/isolation_forest.pkl  inside the project.
+        Defaults to the first available model in the project model priority list.
 
     Returns
     -------
     MLDetector
         A trained MLDetector instance ready for prediction.
     """
-    path = model_path or MODEL_PATH
+    path = model_path or next((candidate for candidate in MODEL_CANDIDATES if os.path.exists(candidate)), None)
 
-    if not os.path.exists(path):
+    if not path or not os.path.exists(path):
         raise FileNotFoundError(
-            f"No trained model found at '{path}'.\n"
+            "No trained model found.\n"
             "Please train first:\n"
             "  • CLI:       python main.py --train <your_training.csv>\n"
             "  • Dashboard: streamlit run ui/dashboard.py  →  ⚙️ Train Model"
@@ -50,8 +55,8 @@ def load_ids_model(model_path: str = None) -> MLDetector:
 
     detector = MLDetector()
     detector.load(path)
-    print(f"[loadmodel] ✅ Isolation Forest model loaded from {path}")
-    print(f"[loadmodel]    Anomaly threshold: {detector.threshold}")
+    print(f"[loadmodel] ✅ ML detector model loaded from {path}")
+    print(f"[loadmodel]    Attack threshold: {detector.threshold}")
     return detector
 
 
