@@ -1460,7 +1460,7 @@ elif page == "Wireshark PCAP Capture":
     
     render_page_header(
         "Wireshark PCAP Capture",
-        "Generate traffic to a target URL while Wireshark silently tracks it in the background, outputting a raw PCAP file for analysis.",
+        "Capture live network traffic via Wireshark, then analyze it directly through the Hybrid-WAF pipeline — no download required.",
         eyebrow="Live Sniffer",
     )
     
@@ -1522,14 +1522,104 @@ elif page == "Wireshark PCAP Capture":
             
             if os.path.exists(pcap_file) and os.path.getsize(pcap_file) > 100:
                 st.success(f"✅ Capture Complete! Generated {os.path.getsize(pcap_file)} bytes.")
-                with open(pcap_file, "rb") as f:
-                    file_bytes = f.read()
-                
-                st.download_button(
-                    label="📥 Download .pcapng file (Open with Wireshark)",
-                    data=file_bytes,
-                    file_name=f"Traffic_Capture_{int(time.time())}.pcapng",
-                    mime="application/vnd.tcpdump.pcap"
-                )
+                st.session_state["last_pcap_file"] = pcap_file
             else:
                 st.warning("⚠️ Capture finished, but the PCAP file seems empty or missing. Check your 'Network Interface' settings or run Streamlit as Administrator.")
+
+    # ── Show controls for the most recent capture (persists across reruns) ──
+    pcap_file = st.session_state.get("last_pcap_file", "capture_output.pcapng")
+    if os.path.exists(pcap_file) and os.path.getsize(pcap_file) > 100:
+        st.markdown("---")
+        st.markdown(f"### Last Capture: `{pcap_file}` ({os.path.getsize(pcap_file):,} bytes)")
+
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            with open(pcap_file, "rb") as f:
+                st.download_button(
+                    label="📥 Download .pcapng",
+                    data=f.read(),
+                    file_name=f"Traffic_Capture_{int(time.time())}.pcapng",
+                    mime="application/vnd.tcpdump.pcap",
+                )
+        with btn_col2:
+            analyze_clicked = st.button("🔍 Analyze This Capture", type="primary")
+
+        if analyze_clicked:
+            from capture.traffic_capture import _extract_packet_row
+            try:
+                from scapy.all import rdpcap
+            except ImportError:
+                st.error("Scapy is not installed. Please run `pip install scapy` to analyze PCAP files.")
+                st.stop()
+
+            with st.spinner("Extracting packets from PCAP and running WAF analysis..."):
+                packets = rdpcap(pcap_file)
+                rows = []
+                for pkt in packets:
+                    row = _extract_packet_row(pkt)
+                    if row is not None:
+                        rows.append(row)
+
+                if len(rows) == 0:
+                    st.warning("PCAP contained 0 valid IP packets to analyze.")
+                    st.stop()
+
+                df_pcap = pd.DataFrame(rows)
+                st.info(f"Extracted **{len(df_pcap)}** flows from the PCAP. Running Hybrid-WAF analysis...")
+                results_df = analyze_df(df_pcap, max_rows=len(df_pcap))
+
+            # ── Results Summary ──
+            st.markdown("---")
+            st.markdown("### Results Summary")
+            c1, c2, c3, c4 = st.columns(4)
+            total = len(results_df)
+            blocks = (results_df["Action"] == "BLOCK").sum()
+            alerts = (results_df["Action"] == "ALERT").sum()
+            allows = (results_df["Action"] == "ALLOW").sum()
+
+            c1.metric("Total Flows", total)
+            c2.metric("Blocked", blocks, delta=f"{blocks/total*100:.1f}%")
+            c3.metric("Alerts", alerts, delta=f"{alerts/total*100:.1f}%")
+            c4.metric("Allowed", allows, delta=f"{allows/total*100:.1f}%")
+
+            if "Label" in results_df.columns:
+                truth = results_df["Label"].astype(str).tolist()
+                pred = actions_to_labels(results_df["Action"].astype(str).tolist())
+                metrics = evaluate_predictions(truth, pred)
+
+                st.markdown("### Evaluation Metrics")
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Accuracy", f"{metrics['accuracy']:.3f}")
+                m2.metric("Precision", f"{metrics['precision']:.3f}")
+                m3.metric("Recall", f"{metrics['recall']:.3f}")
+                m4.metric("F1 Score", f"{metrics['f1_score']:.3f}")
+
+            # ── Charts ──
+            col1, col2 = st.columns(2)
+            with col1:
+                action_counts = results_df["Action"].value_counts()
+                st.bar_chart(action_counts)
+            with col2:
+                st.markdown("**Risk Score Distribution**")
+                hist_data = pd.DataFrame({"Risk Score": results_df["Risk Score"]})
+                st.bar_chart(hist_data["Risk Score"].value_counts(bins=10, sort=False))
+
+            # ── Flow Table ──
+            st.markdown("### Flow-by-Flow Results")
+            filter_action = st.multiselect(
+                "Filter by Action", ["ALLOW", "ALERT", "BLOCK"],
+                default=["ALERT", "BLOCK", "ALLOW"], key="pcap_filter"
+            )
+            filtered_df = results_df[results_df["Action"].isin(filter_action)]
+            st.dataframe(
+                filtered_df.drop(columns=["Reasoning"], errors="ignore"),
+                use_container_width=True,
+                height=400,
+            )
+
+            # ── Download results ──
+            csv_out = results_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download Analysis Results CSV", csv_out,
+                "pcap_waf_results.csv", "text/csv", key="pcap_dl"
+            )
