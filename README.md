@@ -1,5 +1,19 @@
 # Hybrid-WAF: Hybrid Web Application Firewall and Intrusion Detection System
 
+![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?logo=streamlit&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikitlearn&logoColor=white)
+![Pandas](https://img.shields.io/badge/pandas-2.0+-150458?logo=pandas&logoColor=white)
+![NumPy](https://img.shields.io/badge/numpy-1.24+-013243?logo=numpy&logoColor=white)
+![PyYAML](https://img.shields.io/badge/PyYAML-6.0+-CB171E?logo=yaml&logoColor=white)
+![Scapy](https://img.shields.io/badge/Scapy-2.5+-CC0000?logo=python&logoColor=white)
+![Requests](https://img.shields.io/badge/requests-2.31+-2CA5E0?logo=python&logoColor=white)
+![Architecture](https://img.shields.io/badge/Architecture-Hybrid%20WAF%20%2B%20IDS-007ACC)
+![ML Model](https://img.shields.io/badge/ML%20Model-Isolation%20Forest-28a745)
+![Rule Engine](https://img.shields.io/badge/Rule%20Engine-YAML%20Signatures-6f42c1)
+![Benchmark](https://img.shields.io/badge/Benchmark-CIC--IDS2017-d93f0b)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
 A dual-engine cybersecurity defense platform that integrates deterministic signature matching, unsupervised machine learning anomaly detection, and a dynamic risk fusion layer for real-time web application security and network intrusion monitoring.
 
 ---
