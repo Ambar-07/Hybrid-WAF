@@ -34,10 +34,16 @@ A dual-engine cybersecurity defense platform integrating deterministic signature
   <a href="#overview">Overview</a> |
   <a href="#system-architecture">System Architecture</a> |
   <a href="#core-detection-pipeline">Core Pipeline</a> |
-  <a href="#interactive-streamlit-web-dashboard">Dashboard</a> |
+  <a href="#interactive-streamlit-web-dashboard">Dashboard Showcase</a> |
   <a href="#branch-innovations-ambar-gairola-branches">Branch Innovations</a> |
   <a href="#installation-and-setup">Installation</a> |
   <a href="#execution-guide">Execution Guide</a>
+</p>
+
+<br />
+
+<p align="center">
+  <img src="assets/screenshots/01_dashboard_overview.png" alt="Hybrid-WAF Command Center" width="100%" />
 </p>
 
 </div>
@@ -222,30 +228,82 @@ Where:
 
 ## Interactive Streamlit Web Dashboard
 
-The web interface (`ui/dashboard.py`) provides an operations center with specialized views:
+The web interface (`ui/dashboard.py`) provides an integrated security operations center with dedicated operational views:
 
-### 1. Dashboard Overview
-- Executive summary metrics: Total Flows Analyzed, Blocks Enforced, Warnings Issued, Allowed Requests.
-- Visual telemetry: Action breakdown distribution, attack category distribution, and risk score histograms.
-- Engine status monitors: Isolation Forest model state, anomaly threshold index, and active signature count.
+### 1. Command Center & System Blueprint
+Central operations interface displaying the live policy engine status, loaded models, and architectural blueprint.
 
-### 2. Analyze Traffic
-- Ingestion of network flow CSV records and CIC-IDS2017 dataset slices.
-- Batch processing across thousands of connection flows.
-- Interactive data grid with color-coded decision badges, triggered rules, and anomaly scores.
-- Forensic search and filtering by action, severity, IP addresses, and rule names.
+<p align="center">
+  <img src="assets/screenshots/01_dashboard_overview.png" alt="Command Center & System Blueprint" width="100%" />
+</p>
 
-### 3. Train Model
-- Complete in-browser model lifecycle management.
-- Dynamic data source selection (custom uploaded datasets or generated traffic).
-- Automatic filtering for benign flows to safeguard against training data poisoning.
-- Hyperparameter tuning: Contamination factor (0.01 - 0.20) and Estimator count (50 - 300).
-- Immediate export to `models/isolation_forest.pkl`.
+- **Real-Time Engine Status**: Live feedback indicating active model loading status, loaded rule counts (66 active rules), and threshold index.
+- **Unified Navigation**: Direct access across Dashboard, Traffic Generator, Analyze Traffic, Train Model, and Rules Viewer.
+- **Architectural Guidance**: Embedded blueprint outlining the multi-stage detection pipeline.
 
-### 4. Rules Viewer
-- Live catalog of all signature definitions loaded from `config/rules.yaml`.
-- Search across rule IDs, patterns, attack categories, and condition statements.
-- Granular severity inspection with confidence metrics.
+### 2. Synthetic Traffic Generator
+Safe, sandboxed environment for generating benign and malicious request vectors strictly against localhost.
+
+<p align="center">
+  <img src="assets/screenshots/02_traffic_generator.png" alt="Synthetic Traffic Generator" width="100%" />
+</p>
+
+- **Target Validation**: Strict restriction to `http://127.0.0.1` and `localhost` with configurable request inter-arrival delays.
+- **Normal Traffic Generation**: Automated generation of benign HTTP requests with customizable count parameters.
+- **Payload Testing**: Direct injection of attack strings such as `' OR 1=1`, `<script>alert(1)</script>`, and `admin'--` with automatic session appending to `capture/generated_traffic.csv`.
+
+### 3. Traffic Analysis & Ingestion Pipeline
+High-capacity batch analysis engine evaluating standard CSV flow captures and live PCAP extractions.
+
+<p align="center">
+  <img src="assets/screenshots/03_analyze_traffic.png" alt="Traffic Analysis Pipeline" width="100%" />
+</p>
+
+- **Dual-Source Ingestion**: Switch seamlessly between uploaded external benchmark datasets (CIC-IDS2017) and generated localhost captures.
+- **Flow Counter**: Instant flow detection (e.g. 450 detected flows) with toggle to analyze all packets or custom sample sizes.
+- **Real-Time Execution**: High-throughput multi-threaded inspection executing rules and ML anomaly inference in parallel.
+
+### 4. Executive Telemetry & Risk Score Distribution
+Macro-level operational overview summarizing policy actions and statistical risk distributions.
+
+<p align="center">
+  <img src="assets/screenshots/04_results_summary.png" alt="Executive Telemetry and Risk Distribution" width="100%" />
+</p>
+
+- **Action Metrics Cards**: At-a-glance KPI metrics showing Total Flows Processed, Total Blocked (with percentage rates), Alerts Issued, and Allowed Flows.
+- **Action Distribution**: Horizontal breakdown comparing Allowed vs Blocked traffic volumes.
+- **Risk Score Density Histogram**: Visual distribution of calculated risk scores plotted against the active decision threshold line.
+
+### 5. Flow-by-Flow Forensic Audit Grid
+Granular flow inspection table displaying real-time security telemetry for every analyzed connection.
+
+<p align="center">
+  <img src="assets/screenshots/05_flow_results.png" alt="Flow-by-Flow Forensic Audit Grid" width="100%" />
+</p>
+
+- **Dynamic Action Filtering**: Filter table view instantly by action flags (`ALERT`, `BLOCK`, `ALLOW`).
+- **Granular Security Columns**: Inspect Final Action, Final Label (`Suspicious`, `Benign`), Risk Score, Rule Hit (`Yes`/`No`), Attack Type, Matched Rule IDs, Rule Severity, ML Anomaly Score, ML Prediction (`DDoS/DoS`, `Normal`), ML Confidence, and Destination Port.
+
+### 6. Outcome Telemetry & Decision Threshold Tuning
+Comparative visual telemetry illustrating enforcement behavior and risk score modeling.
+
+<p align="center">
+  <img src="assets/screenshots/06_outcome_graphs.png" alt="Outcome Graphs and Decision Tuning" width="100%" />
+</p>
+
+- **Response Behavior Assessment**: Evaluates overall system defense postures under varying traffic densities.
+- **Decision Boundary Alignment**: Displays risk score densities relative to the decision threshold, providing clear rationale for tuning classification boundaries.
+
+### 7. Model Comparative Evaluation
+Empirical benchmark study comparing machine learning classifiers and contrasting rule-based with hybrid architectures.
+
+<p align="center">
+  <img src="assets/screenshots/07_model_evaluation.png" alt="Model Comparative Evaluation" width="100%" />
+</p>
+
+- **Classifier Comparison**: Evaluates Random Forest vs K-Nearest Neighbors (KNN), highlighting Random Forest's superior inference latency (401ms vs 12,539ms) for real-time throughput.
+- **Rule-Based vs Hybrid Architecture**: Validates the hybrid approach in capturing both known signature exploits and zero-day anomaly vectors while minimizing false positives.
+- **Confusion Matrices**: Visual count and normalized confusion matrices across diverse attack classes (DDoS, PortScan, BruteForce, Botnet, Infiltration).
 
 ---
 
