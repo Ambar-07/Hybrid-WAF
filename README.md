@@ -1,78 +1,119 @@
-# Hybrid-WAF: Hybrid Web Application Firewall and Intrusion Detection System
+<div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?logo=streamlit&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikitlearn&logoColor=white)
-![Pandas](https://img.shields.io/badge/pandas-2.0+-150458?logo=pandas&logoColor=white)
-![NumPy](https://img.shields.io/badge/numpy-1.24+-013243?logo=numpy&logoColor=white)
-![PyYAML](https://img.shields.io/badge/PyYAML-6.0+-CB171E?logo=yaml&logoColor=white)
-![Scapy](https://img.shields.io/badge/Scapy-2.5+-CC0000?logo=python&logoColor=white)
-![Requests](https://img.shields.io/badge/requests-2.31+-2CA5E0?logo=python&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Hybrid%20WAF%20%2B%20IDS-007ACC)
-![ML Model](https://img.shields.io/badge/ML%20Model-Isolation%20Forest-28a745)
-![Rule Engine](https://img.shields.io/badge/Rule%20Engine-YAML%20Signatures-6f42c1)
-![Benchmark](https://img.shields.io/badge/Benchmark-CIC--IDS2017-d93f0b)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+# Hybrid-WAF
 
-A dual-engine cybersecurity defense platform that integrates deterministic signature matching, unsupervised machine learning anomaly detection, and a dynamic risk fusion layer for real-time web application security and network intrusion monitoring.
+### Next-Generation Hybrid Web Application Firewall & Network Intrusion Detection System
 
----
+A dual-engine cybersecurity defense platform integrating deterministic signature matching, unsupervised machine learning anomaly detection, and a dynamic risk fusion arbiter for real-time traffic filtering and threat mitigation.
 
-## Table of Contents
+<br />
 
-- [Overview](#overview)
-- [System Architecture](#system-architecture)
-- [Core Detection Pipeline](#core-detection-pipeline)
-  - [1. Feature Extractor](#1-feature-extractor)
-  - [2. Signature Rule Engine](#2-signature-rule-engine)
-  - [3. Machine Learning Anomaly Detector](#3-machine-learning-anomaly-detector)
-  - [4. Dynamic Risk Fusion Engine](#4-dynamic-risk-fusion-engine)
-- [Interactive Streamlit Web Dashboard](#interactive-streamlit-web-dashboard)
-- [Branch Enhancements (Ambar Gairola Branches)](#branch-enhancements-ambar-gairola-branches)
-  - [Safe Localhost Traffic Generator](#safe-localhost-traffic-generator)
-  - [Real-Time WAF Simulation and Stream Replay](#real-time-waf-simulation-and-stream-replay)
-  - [Automated Evaluation and Performance Metrics](#automated-evaluation-and-performance-metrics)
-  - [Traffic Capture and Packet Sniffing](#traffic-capture-and-packet-sniffing)
-  - [Tabular Preprocessing and Feature Alignment](#tabular-preprocessing-and-feature-alignment)
-- [Repository Branch Structure](#repository-branch-structure)
-- [Project Directory Structure](#project-directory-structure)
-- [Installation and Setup](#installation-and-setup)
-- [Execution Guide](#execution-guide)
-  - [Launch Web Dashboard](#launch-web-dashboard)
-  - [CLI Model Training](#cli-model-training)
-  - [CLI Traffic Analysis](#cli-traffic-analysis)
-  - [Verify Model Integrity](#verify-model-integrity)
-- [Risk Scoring and Decision Matrix](#risk-scoring-and-decision-matrix)
-- [Attack Coverage and Detection Categories](#attack-coverage-and-detection-categories)
-- [Configuration Reference](#configuration-reference)
-- [License and Disclaimers](#license-and-disclaimers)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white&labelColor=23272d" alt="Python" />
+  <img src="https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?logo=streamlit&logoColor=white&labelColor=23272d" alt="Streamlit" />
+  <img src="https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikitlearn&logoColor=white&labelColor=23272d" alt="scikit-learn" />
+  <img src="https://img.shields.io/badge/Pandas-2.0+-150458?logo=pandas&logoColor=white&labelColor=23272d" alt="Pandas" />
+  <img src="https://img.shields.io/badge/NumPy-1.24+-013243?logo=numpy&logoColor=white&labelColor=23272d" alt="NumPy" />
+  <img src="https://img.shields.io/badge/PyYAML-6.0+-CB171E?logo=yaml&logoColor=white&labelColor=23272d" alt="PyYAML" />
+  <img src="https://img.shields.io/badge/Scapy-2.5+-CC0000?logo=python&logoColor=white&labelColor=23272d" alt="Scapy" />
+  <img src="https://img.shields.io/badge/Requests-2.31+-2CA5E0?logo=python&logoColor=white&labelColor=23272d" alt="Requests" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Architecture-Hybrid%20WAF%20%2B%20IDS-007ACC?labelColor=23272d" alt="Architecture" />
+  <img src="https://img.shields.io/badge/ML%20Model-Isolation%20Forest-2ea44f?labelColor=23272d" alt="ML Model" />
+  <img src="https://img.shields.io/badge/Rule%20Engine-YAML%20Signatures-6f42c1?labelColor=23272d" alt="Rule Engine" />
+  <img src="https://img.shields.io/badge/Dataset-CIC--IDS2017-d93f0b?labelColor=23272d" alt="Dataset" />
+  <img src="https://img.shields.io/badge/Simulation-Localhost%20Real--Time-8a2be2?labelColor=23272d" alt="Simulation" />
+  <img src="https://img.shields.io/badge/License-MIT-f1c40f?labelColor=23272d" alt="License" />
+</p>
+
+<br />
+
+<p align="center">
+  <a href="#overview">Overview</a> |
+  <a href="#system-architecture">System Architecture</a> |
+  <a href="#core-detection-pipeline">Core Pipeline</a> |
+  <a href="#interactive-streamlit-web-dashboard">Dashboard</a> |
+  <a href="#branch-innovations-ambar-gairola-branches">Branch Innovations</a> |
+  <a href="#installation-and-setup">Installation</a> |
+  <a href="#execution-guide">Execution Guide</a>
+</p>
+
+</div>
 
 ---
 
-## Overview
+## Executive Summary
 
-Modern web applications face an evolving spectrum of cyber threats, ranging from well-documented exploit patterns (SQL Injection, Cross-Site Scripting, directory reconnaissance) to zero-day anomalous behaviors (distributed denial-of-service surges, port scanning, abnormal session timings).
+```
+==================================================================================================
+  LAYER 1: SIGNATURE ENGINE     -->  Deterministic YAML Pattern Matching (Known Threat Exploits)
+  LAYER 2: ISOLATION FOREST ML  -->  Unsupervised Anomaly Modeling (Zero-Days & Behavioral Drift)
+  LAYER 3: DYNAMIC RISK FUSION  -->  Confidence-Weighted Decision Matrix (ALLOW / ALERT / BLOCK)
+==================================================================================================
+```
 
-Traditional signature-only Web Application Firewalls (WAFs) fail against novel evasion techniques and parameter permutations, while pure machine learning systems frequently produce unacceptable false positive rates on benign operational shifts.
+Traditional signature-only Web Application Firewalls (WAFs) fail against novel evasion techniques and parameter permutations, while standalone machine learning systems frequently produce high false-positive rates on benign operational shifts.
 
-Hybrid-WAF resolves this fundamental trade-off through a coordinated multi-layered architecture:
+Hybrid-WAF bridges this gap through a synchronized multi-tiered defense architecture:
 
-1. **Deterministic Rule Engine**: Instantly flags known exploit signatures, abnormal headers, malicious payloads, and malicious threshold crossings with high precision.
-2. **Isolation Forest Anomaly Detector**: Unsupervised statistical modeling trained on benign traffic baselines to flag anomalous deviations and unknown threat vectors.
-3. **Risk Fusion Layer**: Blends rule confidence, rule severity weighting, and statistical anomaly scores into a single normalized risk index, enforcing definitive actions: `ALLOW`, `ALERT`, or `BLOCK`.
+| Tier | Security Engine | Detection Approach | Key Strength |
+|:---:|:---:|:---:|:---:|
+| **Layer 1** | **Signature Rule Engine** | Declarative YAML condition matching | Sub-millisecond identification of known attacks (SQLi, XSS, Probes) |
+| **Layer 2** | **ML Anomaly Detector** | Unsupervised Isolation Forest | Catches subtle behavioral outliers and novel zero-day attack patterns |
+| **Layer 3** | **Dynamic Risk Fusion** | Confidence-weighted multi-factor scoring | Arbitrates conflicts, eliminates false alarms, and issues authoritative actions |
 
 ---
 
 ## System Architecture
 
+### Architectural Flowchart
+
+```mermaid
+flowchart TD
+    Traffic[Incoming Network Traffic<br/>HTTP Requests / PCAP / CSV Flows] --> Extractor[Feature Extractor<br/>19 Dimensional Flow Features]
+
+    Extractor --> RuleEngine[Signature Rule Engine<br/>Deterministic Pattern Matcher]
+    Extractor --> MLDetector[ML Anomaly Detector<br/>Isolation Forest Estimator]
+
+    RuleEngine -->|Severity Weight & Confidence Rating| Fusion[Dynamic Risk Fusion Engine<br/>Weighted Matrix Arbiter]
+    MLDetector -->|Continuous Anomaly Score 0.0 to 1.0| Fusion
+
+    Fusion --> Decision{Composite Risk Assessment}
+
+    Decision -->|Risk >= 0.75 or CRITICAL| Block[BLOCK: Drop and Log Threat]
+    Decision -->|Risk >= 0.45 or HIGH| Alert[ALERT: Pass and Tag Warning]
+    Decision -->|Risk < 0.45| Allow[ALLOW: Forward Clean Traffic]
+
+    classDef default fill:#161b22,stroke:#30363d,color:#e6edf3;
+    classDef highlight fill:#1f6feb,stroke:#388bfd,color:#fff;
+    classDef ruleNode fill:#6f42c1,stroke:#8957e5,color:#fff;
+    classDef mlNode fill:#238636,stroke:#2ea043,color:#fff;
+    classDef fusionNode fill:#d29922,stroke:#e3b341,color:#fff;
+    classDef blockNode fill:#da3633,stroke:#f85149,color:#fff;
+    classDef alertNode fill:#9e6a03,stroke:#bb8009,color:#fff;
+    classDef allowNode fill:#238636,stroke:#2ea043,color:#fff;
+
+    class Traffic,Extractor highlight;
+    class RuleEngine ruleNode;
+    class MLDetector mlNode;
+    class Fusion fusionNode;
+    class Block blockNode;
+    class Alert alertNode;
+    class Allow allowNode;
 ```
-                                  INCOMING TRAFFIC
-             (HTTP Requests / PCAP Network Flows / CSV Ingestion)
+
+### Flow Representation
+
+```
+                              INCOMING TRAFFIC STREAM
+              [ HTTP Requests | Network PCAP Packets | CSV Ingestion ]
                                          |
                                          v
                          +-------------------------------+
                          |   Feature Extraction Engine   |
-                         |   (19 Network Flow Features)  |
+                         |  (19 Network Flow Attributes) |
                          +---------------+---------------+
                                          |
                     +--------------------+--------------------+
@@ -80,17 +121,17 @@ Hybrid-WAF resolves this fundamental trade-off through a coordinated multi-layer
                     v                                         v
      +-----------------------------+           +-----------------------------+
      |     Signature Rule Engine   |           |    ML Anomaly Detector      |
-     |   (YAML Pattern Matcher)    |           |     (Isolation Forest)      |
+     |   (Declarative YAML Rules)  |           |     (Isolation Forest)      |
      +--------------+--------------+           +--------------+--------------+
                     |                                         |
          Severity & Confidence                         Anomaly Score
-             (0.0 - 1.0)                                (0.0 - 1.0)
+              (0.0 - 1.0)                                (0.0 - 1.0)
                     |                                         |
                     +--------------------+--------------------+
                                          |
                                          v
                          +-------------------------------+
-                         |      Risk Fusion Engine       |
+                         |   Dynamic Risk Fusion Engine  |
                          |  Weighted Scoring & Threshold |
                          +---------------+---------------+
                                          |
@@ -105,160 +146,164 @@ Hybrid-WAF resolves this fundamental trade-off through a coordinated multi-layer
 ## Core Detection Pipeline
 
 ### 1. Feature Extractor
-Located in `engine/feature_extractor.py`.
+*Module: `engine/feature_extractor.py`*
 
-Extracts and normalizes 19 core network flow features compatible with enterprise benchmarks (such as the CIC-IDS2017 dataset format):
-- Flow Metrics: `flow_duration`, `total_fwd_packets`, `total_bwd_packets`, `total_len_fwd_packets`, `total_len_bwd_packets`
-- Packet Length Statistics: `fwd_packet_length_max`, `fwd_packet_length_min`, `fwd_packet_length_mean`, `bwd_packet_length_mean`
-- Inter-Arrival Time (IAT): `flow_iat_mean`, `flow_iat_std`, `flow_iat_max`, `fwd_iat_total`
-- Header and Protocol Flags: `fwd_header_length`, `bwd_header_length`, `fwd_packets_s`, `bwd_packets_s`, `syn_flag_count`, `ack_flag_count`
+Converts unstructured packet flows and tabular records into 19 normalized statistical metrics aligned with standard intrusion benchmarks (CIC-IDS2017):
 
-The extractor maintains internal mean/std deviation statistics to reliably transform raw flows into normalized feature vectors bounded for ML inference.
+- **Temporal Metrics**: `flow_duration`, `flow_iat_mean`, `flow_iat_std`, `flow_iat_max`, `fwd_iat_total`
+- **Volume Metrics**: `total_fwd_packets`, `total_bwd_packets`, `total_len_fwd_packets`, `total_len_bwd_packets`
+- **Payload Statistics**: `fwd_packet_length_max`, `fwd_packet_length_min`, `fwd_packet_length_mean`, `bwd_packet_length_mean`
+- **Protocol & Flag Counters**: `fwd_header_length`, `bwd_header_length`, `fwd_packets_s`, `bwd_packets_s`, `syn_flag_count`, `ack_flag_count`
+
+Maintains internal distribution statistics (mean and variance) to project numeric metrics into standardized feature arrays for machine learning ingestion.
 
 ### 2. Signature Rule Engine
-Located in `engine/rule_engine.py` with rules configured via `config/rules.yaml`.
+*Module: `engine/rule_engine.py` | Configuration: `config/rules.yaml`*
 
-Evaluates traffic against declarative, structured security rules across HTTP payloads, port configurations, and flow counters. Supports rich condition operators:
-- Numeric comparisons: `>`, `<`, `>=`, `<=`, `==`, `!=`
-- String and payload operators: `contains`, `startswith`, `endswith`, `in`
+Performs high-throughput deterministic signature evaluation across payloads, headers, ports, and flow metrics. Supports structured logical expressions:
 
-Outputs a structured `RuleEngineOutput` dataclass containing:
-- Boolean detection status (`any_match`, `rule_detected`)
-- List of triggered `RuleResult` items with rule IDs, names, severities, and triggered conditions
-- Calculated maximum confidence rating
-- Highest severity level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`)
+- **Comparison Operators**: `>`, `<`, `>=`, `<=`, `==`, `!=`
+- **Text & Payload Operators**: `contains`, `startswith`, `endswith`, `in`
+
+Produces a strongly-typed `RuleEngineOutput` payload containing:
+- `rule_detected`: Boolean flag indicating match presence.
+- `matched_rules`: Detailed list of triggered rules with IDs, severities, confidence metrics, and fired patterns.
+- `highest_severity`: Escalated severity tier (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+- `max_confidence`: Highest confidence score across all matching rules.
 
 ### 3. Machine Learning Anomaly Detector
-Located in `engine/ml_detector.py`.
+*Module: `engine/ml_detector.py`*
 
-Employs an unsupervised **Isolation Forest** (`sklearn.ensemble.IsolationForest`) architecture:
-- Designed to train exclusively on clean/benign network flows, learning nominal behavioral boundaries.
-- Generates continuous anomaly scores mapped between `0.0` (normal) and `1.0` (severe anomaly).
-- Incorporates dynamic feature width alignment: automatically pads or trims incoming vectors if dataset schemas vary between training and inference runs, guaranteeing backward compatibility.
-- Configurable anomaly decision thresholds (defaulting to `0.55`).
+Implements an unsupervised **Isolation Forest** (`sklearn.ensemble.IsolationForest`) model:
+- **Baseline Training**: Trained exclusively on validated benign/normal network flows, learning high-dimensional structural representations of clean traffic.
+- **Continuous Scoring**: Produces calibrated anomaly probabilities bounded between `0.0` (nominal) and `1.0` (severe anomaly).
+- **Dynamic Dimensional Alignment**: Features an automatic vector alignment subsystem that handles schema variations by padding missing dimensions or slicing excesses, preserving backward compatibility.
+- **Calibrated Thresholding**: Configurable decision boundary (default `0.55`) for anomaly discrimination.
 
 ### 4. Dynamic Risk Fusion Engine
-Located in `engine/fusion.py`.
+*Module: `engine/fusion.py`*
 
-Merges deterministic signatures and probabilistic machine learning inference into an actionable risk assessment.
+Arbiter module combining deterministic certainty with unsupervised anomaly scores into a unified threat index.
 
-#### Fusion Mathematical Model
+#### Risk Formula
 
 ```
-Rule Contribution  = Severity Weight * Rule Max Confidence
-ML Contribution    = ML Anomaly Score
-Composite Risk     = (w_rule * Rule Contribution) + (w_ml * ML Contribution)
-```
+Composite Risk = (w_rule * Rule Contribution) + (w_ml * ML Contribution)
 
 Where:
-- Default `w_rule` = 0.60
-- Default `w_ml` = 0.40
-- Severity Weights:
-  - `CRITICAL` = 1.00
-  - `HIGH`     = 0.85
-  - `MEDIUM`   = 0.50
-  - `LOW`      = 0.25
-  - `NONE`     = 0.00
+  Rule Contribution = Severity Weight * Rule Max Confidence
+  ML Contribution   = ML Anomaly Score
+  Default Weights   = w_rule: 0.60  |  w_ml: 0.40
+```
 
-#### Action Decision Thresholds
+#### Severity Scaling Matrix
 
-| Action | Condition | Response |
-|---|---|---|
-| **BLOCK** | Risk Score >= 0.75 OR Rule Severity == CRITICAL | Packet/flow dropped, request rejected, alert logged |
-| **ALERT** | Risk Score >= 0.45 OR Rule Severity == HIGH | Passed with warning flag, anomaly tagged in audit log |
-| **ALLOW** | Risk Score < 0.45 | Normal clean traffic routed to destination |
+| Severity Level | Base Weight | Threshold Priority |
+|---|:---:|---|
+| **CRITICAL** | `1.00` | Immediate override to BLOCK regardless of ML score |
+| **HIGH** | `0.85` | Immediate override to ALERT or BLOCK |
+| **MEDIUM** | `0.50` | Proportional contribution to composite risk |
+| **LOW** | `0.25` | Minor contribution to composite risk |
+| **NONE** | `0.00` | Zero contribution (pure ML anomaly evaluation) |
+
+#### Decision Action Boundaries
+
+```
+[0.00 ------------------- 0.45 ------------------- 0.75 ------------------- 1.00]
+         ALLOW                      ALERT                      BLOCK
+   (Normal Traffic)          (Suspicious Activity)      (Confirmed Threat)
+```
+
+- **BLOCK** (`Risk >= 0.75` or `Severity == CRITICAL`): Connection dropped, request denied, audit alert generated.
+- **ALERT** (`Risk >= 0.45` or `Severity == HIGH`): Request permitted with security flags, recorded in forensic stream.
+- **ALLOW** (`Risk < 0.45`): Clean traffic routed without interruption.
 
 ---
 
 ## Interactive Streamlit Web Dashboard
 
-The primary user interface is built with Streamlit (`ui/dashboard.py`) and organized into functional operational views:
+The web interface (`ui/dashboard.py`) provides an operations center with specialized views:
 
-### Dashboard Overview
-- High-level KPI metric cards: Total Flows Processed, Blocks Enforced, Warnings Issued, Clean Flows Allowed.
-- Visual charts: Action breakdown distribution, threat category distribution, and risk score frequency histograms.
-- Real-time engine status monitor (ML model availability, threshold index, active rule count).
+### 1. Dashboard Overview
+- Executive summary metrics: Total Flows Analyzed, Blocks Enforced, Warnings Issued, Allowed Requests.
+- Visual telemetry: Action breakdown distribution, attack category distribution, and risk score histograms.
+- Engine status monitors: Isolation Forest model state, anomaly threshold index, and active signature count.
 
-### Analyze Traffic
-- Upload standard network traffic captures or flow CSV files (e.g., CIC-IDS2017 extracts).
-- Run full hybrid analysis across thousands of flow records in seconds.
-- Interactive table inspection with custom status badges, rule attribution, anomaly scores, and explanatory rationale.
-- Data export of flagged threats for SIEM or incident response ingestion.
+### 2. Analyze Traffic
+- Ingestion of network flow CSV records and CIC-IDS2017 dataset slices.
+- Batch processing across thousands of connection flows.
+- Interactive data grid with color-coded decision badges, triggered rules, and anomaly scores.
+- Forensic search and filtering by action, severity, IP addresses, and rule names.
 
-### Train Model
-- Retrain or fine-tune the Isolation Forest model directly from the browser.
-- Select local training datasets or generated capture files.
-- Automated BENIGN flow filtering to ensure model integrity.
-- Hyperparameter controls: Contamination factor (0.01 - 0.20) and number of estimators (50 - 300).
-- One-click model serialization to `models/isolation_forest.pkl`.
+### 3. Train Model
+- Complete in-browser model lifecycle management.
+- Dynamic data source selection (custom uploaded datasets or generated traffic).
+- Automatic filtering for benign flows to safeguard against training data poisoning.
+- Hyperparameter tuning: Contamination factor (0.01 - 0.20) and Estimator count (50 - 300).
+- Immediate export to `models/isolation_forest.pkl`.
 
-### Rules Viewer
-- Interactive inspection of all rules declared in `config/rules.yaml`.
-- Search by rule name, rule ID, or attack category.
-- Filter by severity grade (CRITICAL, HIGH, MEDIUM, LOW).
-- View exact matching logic, condition operators, and detection parameters.
+### 4. Rules Viewer
+- Live catalog of all signature definitions loaded from `config/rules.yaml`.
+- Search across rule IDs, patterns, attack categories, and condition statements.
+- Granular severity inspection with confidence metrics.
 
 ---
 
-## Branch Enhancements (Ambar Gairola Branches)
+## Branch Innovations (Ambar Gairola Branches)
 
-In addition to the core pipeline on `main`, extended capabilities have been developed and tested in branches maintained by **Ambar Gairola** (`test-branch` and `test-branch-2`):
+The branches authored and updated by **Ambar Gairola** (`test-branch` and `test-branch-2`) introduce real-time simulation, attack traffic generation, and model explainability:
 
-### Safe Localhost Traffic Generator
-Implemented in `traffic_generator.py`:
-- **Strict Sandbox Safety Guard**: Enforces execution exclusively against `127.0.0.1` and `localhost`. Requests targeting remote IP addresses or external hostnames are strictly blocked by safety assertion guards.
-- **Dedicated Attack Simulators**:
-  - SQL Injection Generator: Emits payloads including `' OR 1=1`, `admin'--`, and `UNION SELECT`.
-  - Cross-Site Scripting (XSS) Generator: Emits `<script>`, `onerror=`, and `javascript:` vector injections.
-  - Path Fuzzing and Reconnaissance: Generates directory traversal probes (`../`, `/.env`, `/wp-admin`, `/admin`).
-  - Login Burst Generator: High-frequency authentication request bursts with credential fuzzing.
-  - TCP Port Scanner: Sequential probe of target localhost ports to mimic port reconnaissance.
-  - Connection Burst Generator: High-frequency TCP socket connect/close cycles to simulate DoS pressure.
-  - Weighted Mixed Traffic Simulation: Allows users to configure exact ratios of Normal, Suspicious, and Malicious events to test pipeline resilience.
+### 1. Safe Localhost Traffic Generator
+*Module: `traffic_generator.py`*
 
-### Real-Time WAF Simulation and Stream Replay
-Implemented in `ui/dashboard.py` (`test-branch-2`):
-- **Live Stream Mode**: Replays simulated traffic step-by-step through the detection pipeline with configurable inter-request delays.
-- **Dynamic Counters**: Live animated counters for Allowed, Alerted, and Blocked events.
-- **Rule Explainability Panel**: Deep forensics display revealing triggered rule ID, rule name, severity level, exact regex/substring pattern, and match location (URI, headers, or payload).
-- **ML Anomaly Score Tracking**: Interactive time-series plot comparing real-time anomaly scores against the threshold boundary.
-- **Scenario History and Replay**: Saves previous simulation runs in session storage, enabling one-click replay of specific threat scenarios.
+A sandboxed, ethical traffic synthesis engine designed for safe pipeline validation:
+- **Sandbox Boundary Enforcement**: Strictly validates destinations against `127.0.0.1` and `localhost`. Any attempt to target external IPs or domains raises an immediate assertion error.
+- **Attack Synthesis Profiles**:
+  - `generate_payload_http`: Injects SQLi (`' OR 1=1`, `admin'--`, `UNION SELECT`) and XSS (`<script>`, `onerror=`, `javascript:`) vectors.
+  - `generate_path_fuzz_http`: Traversal and reconnaissance scans targeting `../`, `/.env`, `/wp-admin`, and administrative interfaces.
+  - `generate_login_burst_http`: Rapid authentication attempts modeling credential stuffing.
+  - `generate_port_probe`: TCP socket probing across sequential localhost ports.
+  - `generate_connection_burst`: Concurrent TCP socket connect/close floods to simulate DoS pressure.
+  - `generate_weighted_mixed_traffic`: Realistic multi-vector simulations with customizable percentages of Normal, Suspicious, and Malicious events.
 
-### Automated Evaluation and Performance Metrics
-Implemented in `engine/evaluation.py`:
-- Comprehensive quantitative model validation:
-  - Accuracy Score
-  - Precision Score
-  - Recall Score
-  - False Positive Count
-  - Global Detection Rate
-- Granular breakdown reporting detection efficiency grouped by specific attack classification.
+### 2. Real-Time WAF Simulation and Stream Replay
+*Module: `ui/dashboard.py` (`test-branch-2`)*
 
-### Traffic Capture and Packet Sniffing
-Implemented in `capture/traffic_capture.py`:
-- Localhost synthetic traffic capture converting simulated runs into structured CSV datasets (`capture/generated_traffic.csv`).
-- Optional live packet sniffing powered by Scapy (`scapy.all.sniff`), extracting raw IP/TCP/UDP packet headers when loopback capture drivers (Npcap) are installed.
+- **Stream Mode**: Interactive request-by-request replay with adjustable streaming delay (0.0s to 0.25s).
+- **Dynamic Counters**: Real-time counter metrics tracking Allowed, Alerted, and Blocked events live.
+- **Rule Explainability Panel**: Inspects matched rules, triggered regex/substring patterns, match location (URI, headers, payload), and severity levels.
+- **ML Anomaly Score Tracker**: Real-time time-series plot comparing anomaly scores against the threshold boundary.
+- **Scenario History & Replay**: Session-persisted run history allowing instant re-execution of prior simulation batches.
 
-### Tabular Preprocessing and Feature Alignment
-Implemented in `engine/preprocessing.py`:
-- Missing value imputation and safe numeric conversion.
-- Time-delta derivation (`epoch_seconds`, `hour`, `minute`, `time_since_start`) from raw timestamp streams.
-- Optional min-max feature normalization.
-- Backward compatibility layer in `engine/ml_detector.py` to reconcile differing column matrices automatically.
+### 3. Automated Evaluation Framework
+*Module: `engine/evaluation.py`*
+
+Quantitative model validation suite calculating enterprise performance metrics:
+- Accuracy, Precision, Recall, and False Positive totals.
+- Detection Rate breakdown by individual attack classification (SQLi, XSS, Recon, DoS).
+
+### 4. Traffic Capture & Packet Sniffing
+*Module: `capture/traffic_capture.py`*
+
+- Serializes synthetic localhost traffic into structured event logs (`capture/generated_traffic.csv`).
+- Optional live packet sniffing powered by Scapy (`scapy.all.sniff`), extracting raw IP/TCP/UDP packet headers when loopback capture drivers (Npcap) are present.
+
+### 5. Tabular Preprocessing & Normalization
+*Module: `engine/preprocessing.py`*
+
+- Automated type coercion and missing value imputation.
+- Time-delta derivation (`epoch_seconds`, `hour`, `minute`, `time_since_start`).
+- Robust min-max normalization.
 
 ---
 
 ## Repository Branch Structure
 
-The repository maintains the following branch layout:
-
-| Branch Name | Primary Contributor | Focus / Contents |
-|---|---|---|
-| `main` | Ambar Gairola | Stable production baseline. Core hybrid IDS engine, CLI runner, models, rules, and Streamlit dashboard. |
-| `test-branch-2` | Ambar Gairola | Active development branch. Adds Weighted Mixed Traffic Simulator, Real-Time Replay Simulation, Stream Mode, Metrics Panel, Rule Forensics, and Localhost Demo Rules. |
-| `test-branch` | Ambar Gairola | Initial prototype branch for localhost traffic generation, capture module, and Streamlit UI refresh. |
-
-*Note: For the latest live attack simulation and real-time decision replay features, switch to `test-branch-2`.*
+| Branch | Author | Status | Key Highlights |
+|---|---|:---:|---|
+| **`main`** | Ambar Gairola | **Stable** | Production baseline: core hybrid IDS engine, CLI runner, model loader, rules, and Streamlit dashboard. |
+| **`test-branch-2`** | Ambar Gairola | **Active Dev** | Advanced weighted traffic generator, real-time WAF replay simulation, live stream mode, rule explainability, and detection metrics. |
+| **`test-branch`** | Ambar Gairola | **Prototype** | Initial prototype for localhost traffic generation, capture module, and UI refresh. |
 
 ---
 
@@ -267,10 +312,10 @@ The repository maintains the following branch layout:
 ```
 Hybrid-WAF/
 |-- .streamlit/
-|   `-- config.toml             # Streamlit server and theme configuration
+|   `-- config.toml             # Streamlit server and theme settings
 |-- capture/
-|   |-- generated_traffic.csv   # Persisted localhost attack/normal event logs
-|   `-- traffic_capture.py      # Localhost traffic logging and Scapy packet sniffer
+|   |-- generated_traffic.csv   # Persisted localhost attack and normal event logs
+|   `-- traffic_capture.py      # Traffic capture and Scapy packet sniffer
 |-- config/
 |   `-- rules.yaml              # Declarative YAML signature rules dictionary
 |-- engine/
@@ -284,7 +329,7 @@ Hybrid-WAF/
 |   `-- rule_engine.py          # Rule parsing and pattern evaluation engine
 |-- models/
 |   |-- isolation_forest.pkl    # Serialized Isolation Forest model binary
-|   `-- loadmodel.py            # Model loading and health-check verification utility
+|   `-- loadmodel.py            # Model verification and loading utility
 |-- ui/
 |   `-- dashboard.py            # Streamlit multi-page web dashboard
 |-- main.py                     # Command-line interface for training and batch analysis
@@ -306,7 +351,7 @@ git clone https://github.com/Ambar-07/Hybrid-WAF.git
 cd Hybrid-WAF
 ```
 
-### 2. Create and Activate Virtual Environment
+### 2. Set Up Virtual Environment
 On Windows (PowerShell):
 ```powershell
 python -m venv venv
@@ -324,7 +369,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-*For branches utilizing Scapy and requests (`test-branch-2`), dependencies include:*
+For extended branches utilizing Scapy and requests (`test-branch-2`):
 ```bash
 pip install pandas numpy scikit-learn streamlit pyyaml requests scapy
 ```
@@ -334,104 +379,51 @@ pip install pandas numpy scikit-learn streamlit pyyaml requests scapy
 ## Execution Guide
 
 ### Launch Web Dashboard
-Run the Streamlit application from the project root:
 ```bash
 streamlit run ui/dashboard.py
 ```
-The interface will automatically open in your default browser at `http://localhost:8501`.
+Open your browser at `http://localhost:8501`.
 
 ### CLI Model Training
-Train the Isolation Forest model on normal/benign network traffic records:
 ```bash
 python main.py --train data/cicids2017/normal_traffic.csv
 ```
-The script will filter for benign flows, normalize feature representations, train the estimator, and persist the weights to `models/isolation_forest.pkl`.
 
 ### CLI Traffic Analysis
-Execute the hybrid inspection pipeline on an unlabelled or mixed traffic batch:
 ```bash
 python main.py --analyze data/test_traffic.csv --rows 500
 ```
-Console output displays flow-by-flow assessments along with aggregate totals:
-```text
-[IDS] Results:
-  BLOCK : 42
-  ALERT : 18
-  ALLOW : 440
-```
 
 ### Verify Model Integrity
-Confirm that the trained model file is present, structurally intact, and loadable:
 ```bash
 python models/loadmodel.py
 ```
 
 ---
 
-## Risk Scoring and Decision Matrix
+## Attack Coverage Reference
 
-Hybrid-WAF combines signature certainty with statistical variance using a multi-factor risk weighting model:
-
-```
-+-------------------------------------------------------------------------+
-| Risk Score = (0.60 * Rule Severity Weight * Confidence) + (0.40 * ML)   |
-+-------------------------------------------------------------------------+
-```
-
-### Decision Matrix
-
-| Rule Match Status | ML Anomaly Score | Calculated Risk | Output Action | Explanation |
-|---|---|---|---|---|
-| Critical Signature Match | Low (< 0.40) | >= 0.75 (Override) | **BLOCK** | Explicit threat detected; blocked regardless of ML |
-| High Signature Match | Moderate (0.40 - 0.60) | 0.65 - 0.85 | **BLOCK / ALERT** | High-severity rule combined with abnormal flow characteristics |
-| No Rule Match | High (> 0.80) | 0.45 - 0.65 | **ALERT** | Novel anomaly detected; flagged for review without signature |
-| No Rule Match | Low (< 0.30) | < 0.30 | **ALLOW** | Clean baseline behavior; unobstructed passage |
+| Attack Category | Key Signatures & Condition Rules | Severity | Action |
+|---|---|:---:|:---:|
+| **SQL Injection** | `' OR 1=1`, `UNION SELECT`, `admin'--`, `INFORMATION_SCHEMA` | HIGH / CRITICAL | BLOCK |
+| **Cross-Site Scripting** | `<script>`, `onerror=`, `javascript:`, `document.cookie` | HIGH | ALERT / BLOCK |
+| **Reconnaissance / Probe** | Sequential unique port targets > 12, rapid SYN scans | MEDIUM | ALERT |
+| **DoS / Flooding** | High connection bursts, packet rate > 20 pkts/s, SYN flood | HIGH | BLOCK |
+| **Brute Force** | Rapid authentication attempts against `/login` endpoints | HIGH | BLOCK |
+| **Path Traversal** | `../`, `..%2f`, access to `/.env`, `/wp-admin`, config files | HIGH | BLOCK |
+| **Heartbleed / Exploit** | Abnormal payload length on TLS port 443 | CRITICAL | BLOCK |
 
 ---
 
-## Attack Coverage and Detection Categories
+## Benchmark Dataset
 
-The rule definitions in `config/rules.yaml` provide coverage across key web and network attack classifications:
-
-| Category | Example Rule IDs | Trigger Conditions / Signatures | Severity |
-|---|---|---|---|
-| **SQL Injection** | `SQLI-UNION-001`, `DEMO-SQLI-001` | String contains `' OR 1=1`, `UNION SELECT`, `admin'--` | HIGH / CRITICAL |
-| **Cross-Site Scripting** | `XSS-SCRIPT-001`, `DEMO-XSS-001` | Pattern contains `<script>`, `onerror=`, `javascript:` | HIGH |
-| **Reconnaissance / Probe** | `DEMO-PROBE-001`, `PORT-SCAN-001` | Unique destination ports > 12 within short duration | MEDIUM |
-| **DoS / Flooding** | `DEMO-BURST-001`, `DOS-SYN-001` | High connection bursts, packet rate > 20 pkts/s | HIGH |
-| **Brute Force** | `BRUTE-SSH-001`, `BRUTE-HTTP-001` | Rapid repeat requests targeting authentication endpoints | HIGH |
-| **Web Shell / Traversal** | `TRAVERSAL-001` | Path indicators `../`, `/wp-admin`, `/.env` access attempts | HIGH |
-| **Heartbleed / Protocol Exploit** | `HEARTBLEED-001` | Payload size anomaly on TLS heartbeat port 443 | CRITICAL |
+Validated against the Canadian Institute for Cybersecurity **CIC-IDS2017** benchmark:
+- Reference URL: [CIC-IDS2017 Dataset](https://www.unb.ca/cic/datasets/ids-2017.html)
+- Recommended baseline: `Monday-WorkingHours.pcap_ISCX.csv` (Benign baseline)
+- Threat subsets: `Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv` and `Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv`
 
 ---
 
-## Configuration Reference
+## License and Ethics Notice
 
-Customization is managed through two primary configuration files:
-
-1. **`config/rules.yaml`**:
-   Add, modify, or disable signature rules. Each rule requires:
-   - `id`: Unique alphanumeric identifier (e.g., `CUSTOM-001`)
-   - `name`: Human-readable label
-   - `category`: Attack classification
-   - `severity`: `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`
-   - `confidence`: Floating-point scalar from `0.0` to `1.0`
-   - `conditions`: List of field expressions (`field`, `op`, `value`)
-
-2. **`ui/dashboard.py` & `main.py`**:
-   Tune fusion weightings (`w_rule`, `w_ml`), anomaly decision thresholds (`threshold`), and action limits (`block_threshold`, `alert_threshold`).
-
----
-
-## Evaluation Benchmark
-
-The system can be validated against the Canadian Institute for Cybersecurity **CIC-IDS2017** benchmark dataset:
-- Benchmark source: [CIC-IDS2017 Dataset](https://www.unb.ca/cic/datasets/ids-2017.html)
-- Recommended training subset: `Monday-WorkingHours.pcap_ISCX.csv` (100% Benign baseline flows)
-- Recommended testing subsets: `Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv` and `Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv`
-
----
-
-## License and Disclaimers
-
-This software is developed for educational, defensive, and research purposes. Traffic generation features in `traffic_generator.py` are strictly bounded to localhost (`127.0.0.1`) and must never be directed toward unauthorized external targets.
+Developed for educational, research, and defensive security engineering. The localhost traffic generator is strictly constrained to `127.0.0.1` and must not be used against unauthorized external targets. Distributed under the MIT License.
