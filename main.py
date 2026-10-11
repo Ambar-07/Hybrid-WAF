@@ -1,7 +1,7 @@
 """
 Hybrid IDS — Main Pipeline
 --------------------------
-Ties together:  FeatureExtractor → RuleEngine → MLDetector → FusionLayer
+Ties together:  FeatureExtractor → RuleEngine → MLDetector → FusionLayer.
 
 Usage
 -----
