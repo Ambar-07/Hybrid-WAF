@@ -295,7 +295,7 @@ Comparative visual telemetry illustrating enforcement behavior and risk score mo
 - **Decision Boundary Alignment**: Displays risk score densities relative to the decision threshold, providing clear rationale for tuning classification boundaries.
 
 ### 7. Model Comparative Evaluation
-Empirical benchmark study comparing machine learning classifiers and contrasting rule-based with hybrid architectures.
+Empirical benchmark study comparing machine learning classifiers and contrasting rule-based with hybrid architecture
 
 <p align="center">
   <img src="assets/screenshots/07_model_evaluation.png" alt="Model Comparative Evaluation" width="100%" />
