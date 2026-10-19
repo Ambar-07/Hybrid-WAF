@@ -72,7 +72,7 @@ Hybrid-WAF bridges this gap through a synchronized multi-tiered defense architec
 
 ---
 
-## System Architecture
+## System Architecture.
 
 ### Architectural Flowchart
 
