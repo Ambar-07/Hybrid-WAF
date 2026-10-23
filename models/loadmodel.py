@@ -50,7 +50,7 @@ def load_ids_model(model_path: str = None) -> MLDetector:
 
     detector = MLDetector()
     detector.load(path)
-    print(f"[loadmodel] ✅ Isolation Forest model loaded from {path}")
+    print(f"[loadmodel] Isolation Forest model loaded from {path}")
     print(f"[loadmodel]    Anomaly threshold: {detector.threshold}")
     return detector
 
