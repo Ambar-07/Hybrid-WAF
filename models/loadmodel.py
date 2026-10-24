@@ -61,4 +61,4 @@ if __name__ == "__main__":
         detector = load_ids_model()
         print("[loadmodel] Model is ready for predictions.")
     except FileNotFoundError as e:
-        print(f"[loadmodel] ⚠️  {e}")
+        print(f"[loadmodel]  {e}")
