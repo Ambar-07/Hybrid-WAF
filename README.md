@@ -338,7 +338,7 @@ A sandboxed, ethical traffic synthesis engine designed for safe pipeline validat
 
 Quantitative model validation suite calculating enterprise performance metrics:
 - Accuracy, Precision, Recall, and False Positive totals.
-- Detection Rate breakdown by individual attack classification (SQLi, XSS, Recon, DoS).
+- Detection Rate breakdown by individual attack classification (SQLi, XSS, Reconnaissance, DoS).
 
 ### 4. Traffic Capture & Packet Sniffing
 *Module: `capture/traffic_capture.py`*
